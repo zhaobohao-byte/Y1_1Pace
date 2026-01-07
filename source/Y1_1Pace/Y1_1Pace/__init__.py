@@ -8,7 +8,19 @@ Python module serving as a project/extension template.
 """
 
 # Register Gym environments.
-from .tasks import *
+from .tasks.manager_based.pace.pace_sim2real_env_cfg import (
+    PaceSim2realEnvCfg,
+    PaceSim2realSceneCfg,
+    PaceCfg,
+)
 
-# Register UI extensions.
-from .ui_extension_example import *
+# Optimizer
+from .optim import CMAESOptimizer
+
+__all__ = [
+    "PaceSim2realEnvCfg",
+    "PaceSim2realSceneCfg",
+    "PaceCfg",
+    "CMAESOptimizer"
+]
+
