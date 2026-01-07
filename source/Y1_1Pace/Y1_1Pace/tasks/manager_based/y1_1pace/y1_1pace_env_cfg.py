@@ -1,8 +1,6 @@
 from isaaclab.utils import configclass
 # from isaaclab.sim import sim_utils
 import isaaclab.sim as sim_utils
-
-from isaaclab_assets.robots.Y1_1 import Y1_1_CFG
 from isaaclab.assets import ArticulationCfg
 from pace_sim2real.utils import PaceDCMotorCfg
 from pace_sim2real import PaceSim2realEnvCfg, PaceSim2realSceneCfg, PaceCfg
@@ -90,7 +88,7 @@ class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
     robot: ArticulationCfg = ArticulationCfg(
         prim_path="{ENV_REGEX_NS}/Robot",
         spawn=sim_utils.UrdfFileCfg( 
-            urdf_path="../../Y1_1_robot/urdf/Y1_1.urdf",  
+            asset_path="../../Y1_1_robot/urdf/Y1_1.urdf",  
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(
                 fix_root_link=True,             
                 enabled_self_collisions=False,
