@@ -97,8 +97,8 @@ class TerminationsCfg:
 class CMAESOptimizerCfg:
     """CMA-ES optimizer configuration."""
     max_iteration: int = 200
-    epsilon: float = 1e-2
-    sigma: float = 0.5
+    epsilon: float = 1e-3
+    sigma: float = 0.5 
     save_interval: int = 10
     save_optimization_process: bool = False  # consume more disk space if True, saves optimization process after finishing
 
@@ -141,7 +141,7 @@ class PaceSim2realEnvCfg(ManagerBasedRLEnvCfg):
         self.viewer.lookat = (0.0, 0.0, 0.8)
         self.viewer.eye = (2.0, 2.0, 1.5)
         # simulation settings
-        self.sim.dt = 0.0025  # 400Hz simulation
-        self.sim.render_interval = 4  # render at 100Hz
+        self.sim.dt = 0.002  # 500Hz simulation
+        self.sim.render_interval = 5  # render at 100Hz
 
         self.scene.robot.spawn.articulation_props.fix_root_link = True
