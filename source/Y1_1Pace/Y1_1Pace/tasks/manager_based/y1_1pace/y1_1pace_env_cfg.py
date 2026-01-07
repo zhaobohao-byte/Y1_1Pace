@@ -1,5 +1,7 @@
 from isaaclab.utils import configclass
-from isaaclab.sim import sim_utils
+# from isaaclab.sim import sim_utils
+import isaaclab.sim as sim_utils
+
 from isaaclab_assets.robots.Y1_1 import Y1_1_CFG
 from isaaclab.assets import ArticulationCfg
 from pace_sim2real.utils import PaceDCMotorCfg
