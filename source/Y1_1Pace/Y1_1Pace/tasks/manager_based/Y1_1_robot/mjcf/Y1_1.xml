@@ -65,7 +65,7 @@
   </asset>
 
   <worldbody>
-    <body name="waist_link" pos="0 0 0.45" >
+    <body name="waist_link" pos="0 0 0.48" >
       <freejoint name="floating_base"/>
       <site name="imu" size="0.01" pos="0 0 0.5" />
         <inertial pos="0.0013 0.0000 0.0572" quat="1.0 0.0 0.0 0.0" mass="1.44414585717254" diaginertia="0.004 0.0029 0.0027" />
@@ -162,9 +162,15 @@
                   <body name="r_ankle_roll_Link" pos="0.0365 0.0190 0.0000" quat="1.0 0.0 0.0 0.0">
                     <joint name="r_ankle_roll_joint" type="hinge" ref="0.0" class="motor" limited="true" range="-0.3455751918948773 0.3455751918948773" axis="1.0000 0.0000 0.0000" armature="0.001" />
                     <inertial pos="-0.0436 0.0001 -0.0227" quat="1.0 0.0 0.0 0.0" mass="0.330082839985978" diaginertia="0.001 0.001 0.001" />
-                    <geom name="r_ankle_roll_Link_collision" pos="-0.03 0.0000 -0.04" quat="1.0 0.0 0.0 0.0" type="box" size="0.09 0.05 0.005" class="collision" />
+                    <geom name="r_ankle_roll_Link_collision_0" pos="0.012 -0.029 -0.0411" quat="0.7071054825112363 0.0 0.7071080798594735 0.0" type="cylinder" size="0.005 0.025" class="collision" />
+                    <geom name="r_ankle_roll_Link_collision_1" pos="-0.022 -0.021 -0.0411" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0" type="cylinder" size="0.005 0.0765" class="collision" />
+                    <geom name="r_ankle_roll_Link_collision_2" pos="-0.022 -0.01 -0.0411" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0" type="cylinder" size="0.005 0.084" class="collision" />
+                    <geom name="r_ankle_roll_Link_collision_3" pos="-0.0214 0 -0.0411" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0" type="cylinder" size="0.005 0.0855" class="collision" />
+                    <geom name="r_ankle_roll_Link_collision_4" pos="-0.022 0.01 -0.0411" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0" type="cylinder" size="0.005 0.084" class="collision" />
+                    <geom name="r_ankle_roll_Link_collision_5" pos="-0.022 0.021 -0.0411" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0" type="cylinder" size="0.005 0.0765" class="collision" />
+                    <geom name="r_ankle_roll_Link_collision_6" pos="0.012 0.029 -0.0411" quat="0.7071054825112363 0.0 0.7071080798594735 0.0" type="cylinder" size="0.005 0.025" class="collision" />
                     <geom name="r_ankle_roll_Link_visual" pos="0.0000 0.0000 0.0000" quat="1.0 0.0 0.0 0.0" material="waist_link_mat" type="mesh" mesh="r_ankle_roll_Link.STL" class="visual" />
-                  </body>
+                    </body>
                 </body>
               </body>
             </body>
@@ -197,7 +203,13 @@
                   <body name="l_ankle_roll_Link" pos="0.0365 -0.0190 0.0000" quat="1.0 0.0 0.0 0.0">
                     <joint name="l_ankle_roll_joint" type="hinge" ref="0.0" class="motor" limited="true" range="-0.3455751918948773 0.3455751918948773" axis="1.0000 0.0000 0.0000" armature="0.001" />
                     <inertial pos="-0.0483 0.0002 -0.0191" quat="1.0 0.0 0.0 0.0" mass="0.330082839985978" diaginertia="0.001 0.001 0.001" />
-                    <geom name="l_ankle_roll_Link_collision" pos="-0.03 0.0000 -0.04" quat="1.0 0.0 0.0 0.0" type="box" size="0.09 0.05 0.005" class="collision" />
+                    <geom name="l_ankle_roll_Link_collision_0" pos="0.012 -0.029 -0.0411" quat="0.7071054825112363 0.0 0.7071080798594735 0.0" type="cylinder" size="0.005 0.025" class="collision" />
+                    <geom name="l_ankle_roll_Link_collision_1" pos="-0.022 -0.021 -0.0411" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0" type="cylinder" size="0.005 0.0765" class="collision" />
+                    <geom name="l_ankle_roll_Link_collision_2" pos="-0.022 -0.01 -0.0411" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0" type="cylinder" size="0.005 0.084" class="collision" />
+                    <geom name="l_ankle_roll_Link_collision_3" pos="-0.0214 0 -0.0411" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0" type="cylinder" size="0.005 0.0855" class="collision" />
+                    <geom name="l_ankle_roll_Link_collision_4" pos="-0.022 0.01 -0.0411" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0" type="cylinder" size="0.005 0.084" class="collision" />
+                    <geom name="l_ankle_roll_Link_collision_5" pos="-0.022 0.021 -0.0411" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0" type="cylinder" size="0.005 0.0765" class="collision" />
+                    <geom name="l_ankle_roll_Link_collision_6" pos="0.012 0.029 -0.0411" quat="0.7071054825112363 0.0 0.7071080798594735 0.0" type="cylinder" size="0.005 0.025" class="collision" />
                     <geom name="l_ankle_roll_Link_visual" pos="0.0000 0.0000 0.0000" quat="1.0 0.0 0.0 0.0" material="waist_link_mat" type="mesh" mesh="l_ankle_roll_Link.STL" class="visual" />
                   </body>
                 </body>
