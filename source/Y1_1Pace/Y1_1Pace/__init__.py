@@ -8,7 +8,7 @@ Python module serving as a project/extension template.
 """
 
 # Register Gym environments.
-from .tasks.manager_based.pace.pace_sim2real_env_cfg import (
+from .tasks.manager_based.y1_1pace.pace_sim2real_env_cfg import (
     PaceSim2realEnvCfg,
     PaceSim2realSceneCfg,
     PaceCfg,

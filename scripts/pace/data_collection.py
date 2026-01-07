@@ -13,7 +13,7 @@ from isaaclab.app import AppLauncher
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Pace agent for Isaac Lab environments.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
-parser.add_argument("--task", type=str, default="Isaac-Pace-Anymal-D-v0", help="Name of the task.")
+parser.add_argument("--task", type=str, default="Isaac-Pace-Y1_1-v0", help="Name of the task.")
 parser.add_argument("--min_frequency", type=float, default=0.1, help="Minimum frequency for the chirp signal in Hz.")
 parser.add_argument("--max_frequency", type=float, default=10.0, help="Maximum frequency for the chirp signal in Hz.")
 parser.add_argument("--duration", type=float, default=20.0, help="Duration of the chirp signal in seconds.")
@@ -60,7 +60,7 @@ def main():
     armature = torch.tensor([0.1] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
     damping = torch.tensor([4.5] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
     friction = torch.tensor([0.05] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    bias = torch.tensor([0.05] * 12, device=env.unwrapped.device).unsqueeze(0)
+    bias = torch.tensor([0.05] * 6, device=env.unwrapped.device).unsqueeze(0)
     time_lag = torch.tensor([[5]], dtype=torch.int, device=env.unwrapped.device)
     env.reset()
 
@@ -104,16 +104,20 @@ def main():
         device=env.unwrapped.device
     )
     trajectory_bias = torch.tensor(
-        [0.0, 0.4, 0.8] * 4,
+        [0.0, 0.4, 0.8, 0.2, 0.1, 0.4],
         device=env.unwrapped.device
     )
     trajectory_scale = torch.tensor(
-        [0.25, 0.5, -2.0] * 4,
+        [0.3, 0.5, 0.4, 0.6, 0.6, 0.6],
         device=env.unwrapped.device
     )
-    trajectory[:, joint_ids] = (trajectory[:, joint_ids] + trajectory_bias.unsqueeze(0)) * trajectory_directions.unsqueeze(0) * trajectory_scale.unsqueeze(0)
+    init_bias = torch.tensor(
+        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+        device=env.unwrapped.device
+    )
+    trajectory[:, joint_ids] = trajectory[:, joint_ids] + trajectory_bias.unsqueeze(0) * trajectory_directions.unsqueeze(0) * trajectory_scale.unsqueeze(0)
 
-    articulation.write_joint_position_to_sim(trajectory[0, :].unsqueeze(0) + bias[0, joint_ids])
+    articulation.write_joint_position_to_sim(trajectory[0, :].unsqueeze(0) + bias[0, joint_ids] + init_bias[0, joint_ids])
     articulation.write_joint_velocity_to_sim(torch.zeros((1, len(joint_ids)), device=env.unwrapped.device))
 
     counter = 0

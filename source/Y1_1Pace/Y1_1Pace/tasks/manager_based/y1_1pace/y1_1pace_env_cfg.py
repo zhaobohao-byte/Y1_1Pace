@@ -5,6 +5,8 @@ from isaaclab.assets import ArticulationCfg
 from pace_sim2real.utils import PaceDCMotorCfg
 from pace_sim2real import PaceSim2realEnvCfg, PaceSim2realSceneCfg, PaceCfg
 import torch
+from pathlib import Path
+
 
 Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
     joint_names_expr=["l_.*_joint"],      
@@ -35,12 +37,12 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
     },
 
     stiffness={
-        "l_hip_pitch_joint": 78.95683520420137,
-        "l_hip_roll_joint": 47.37410112252082,
-        "l_hip_yaw_joint": 47.37410112252082,
-        "l_knee_pitch_joint": 78.95683520420137,    
-        "l_ankle_pitch_joint": 47.37410112252082,
-        "l_ankle_roll_joint": 3.9478417602100686,
+        "l_hip_pitch_joint": 78.9568352,
+        "l_hip_roll_joint": 47.3741,
+        "l_hip_yaw_joint": 47.3741,
+        "l_knee_pitch_joint": 78.9568352,    
+        "l_ankle_pitch_joint": 47.3741,
+        "l_ankle_roll_joint": 3.94784176,
     },
     damping={
         "l_hip_pitch_joint": 5.0265482456,
@@ -88,10 +90,17 @@ class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
     robot: ArticulationCfg = ArticulationCfg(
         prim_path="{ENV_REGEX_NS}/Robot",
         spawn=sim_utils.UrdfFileCfg( 
-            asset_path="../../Y1_1_robot/urdf/Y1_1.urdf",  
-            articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-                fix_root_link=True,             
+            asset_path="/home/bohao/LuvRobot/Y1_1Pace/Y1_1Pace/source/Y1_1Pace/Y1_1Pace/tasks/manager_based/Y1_1_robot/urdf/Y1_1.urdf",  
+            fix_base=True,
+            articulation_props=sim_utils.ArticulationRootPropertiesCfg(            
                 enabled_self_collisions=False,
+
+            ),
+            joint_drive=sim_utils.UrdfConverterCfg.JointDriveCfg(
+                gains=sim_utils.UrdfConverterCfg.JointDriveCfg.PDGainsCfg(
+                    stiffness=None,  # 从 URDF 读取
+                    damping=None     # 从 URDF 读取或默认
+                ),
             ),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
@@ -109,7 +118,7 @@ class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
 class Y1_1PaceEnvCfg(PaceSim2realEnvCfg):
 
     scene: Y1_1PaceSceneCfg = Y1_1PaceSceneCfg()
-    sim2real: PaceCfg = Y1_1PaceCfg()
+    sim2real: Y1_1PaceCfg = Y1_1PaceCfg()
 
     def __post_init__(self):
         # post init of parent

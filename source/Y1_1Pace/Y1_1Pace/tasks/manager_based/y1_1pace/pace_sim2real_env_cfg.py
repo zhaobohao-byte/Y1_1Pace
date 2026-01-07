@@ -143,5 +143,3 @@ class PaceSim2realEnvCfg(ManagerBasedRLEnvCfg):
         # simulation settings
         self.sim.dt = 0.002  # 500Hz simulation
         self.sim.render_interval = 5  # render at 100Hz
-
-        self.scene.robot.spawn.articulation_props.fix_root_link = True
