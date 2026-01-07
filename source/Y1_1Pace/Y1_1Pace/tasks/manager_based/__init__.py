@@ -6,7 +6,7 @@
 import gymnasium as gym  # noqa: F401
 
 gym.register(
-    id="Isaac-Pace-Anymal-D-v0",
+    id="Isaac-Pace-Y1_1-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
