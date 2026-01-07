@@ -1,17 +1,13 @@
-# © 2025 ETH Zurich, Robotic Systems Lab
-# Author: Filip Bjelonic
-# Licensed under the Apache License 2.0
-
 from isaaclab.utils import configclass
 from isaaclab.sim import sim_utils
-from isaaclab_assets.robots.Y1_1 import Y1_1_D_CFG
+from isaaclab_assets.robots.Y1_1 import Y1_1_CFG
 from isaaclab.assets import ArticulationCfg
 from pace_sim2real.utils import PaceDCMotorCfg
 from pace_sim2real import PaceSim2realEnvCfg, PaceSim2realSceneCfg, PaceCfg
 import torch
 
 Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
-    joint_names_expr=["l_.*_joint"],      # 匹配所有左腿关节（根据你的命名）
+    joint_names_expr=["l_.*_joint"],      
     saturation_effort=100.0,
     effort_limit={
         "l_hip_pitch_joint": 60.0,
@@ -61,9 +57,9 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
 
 @configclass
 class Y1_1PaceCfg(PaceCfg):
-    """Pace configuration for Y1_1-D robot."""
-    robot_name: str = "Y1_1_d_sim"
-    data_dir: str = "Y1_1_d_sim/chirp_data.pt"  # located in pace_sim2real/data/Y1_1_d_sim/chirp_data.pt
+    """Pace configuration for Y1_1 robot."""
+    robot_name: str = "Y1_1_sim"
+    data_dir: str = "Y1_1_sim/chirp_data.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
     bounds_params: torch.Tensor = torch.zeros((25, 2))  # 6 + 6 + 6 + 6 + 1 = 25 parameters to optimize
     joint_order: list[str] = [
         "l_hip_pitch_joint",
@@ -86,8 +82,7 @@ class Y1_1PaceCfg(PaceCfg):
 
 @configclass
 class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
-    """Configuration for Y1_1-D robot in Pace Sim2Real environment.
-    使用自定义 URDF，固定基座，高度 1.0m。
+    """Configuration for Y1_1 robot in Pace Sim2Real environment.
     """
 
     robot: ArticulationCfg = ArticulationCfg(
