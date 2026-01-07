@@ -13,7 +13,7 @@ from isaaclab.app import AppLauncher
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Pace agent for Isaac Lab environments.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
-parser.add_argument("--task", type=str, default="Isaac-Pace-Y1_1-v0", help="Name of the task.")
+parser.add_argument("--task", type=str, default="Isaac-Pace-Y1-1-v0", help="Name of the task.")
 parser.add_argument("--min_frequency", type=float, default=0.1, help="Minimum frequency for the chirp signal in Hz.")
 parser.add_argument("--max_frequency", type=float, default=10.0, help="Maximum frequency for the chirp signal in Hz.")
 parser.add_argument("--duration", type=float, default=20.0, help="Duration of the chirp signal in seconds.")
@@ -136,7 +136,7 @@ def main():
             obs, _, _, _, _ = env.step(actions)
             dof_target_pos_buffer[counter, :] = env.unwrapped.scene.articulations["robot"]._data.joint_pos_target[0, joint_ids]
             counter += 1
-            if counter % 400 == 0:
+            if counter % 500 == 0:
                 print(f"[INFO]: Step {counter/sample_rate} seconds")
             if counter >= num_steps:
                 break

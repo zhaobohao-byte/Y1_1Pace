@@ -61,7 +61,7 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
 class Y1_1PaceCfg(PaceCfg):
     """Pace configuration for Y1_1 robot."""
     robot_name: str = "Y1_1_sim"
-    data_dir: str = "Y1_1_sim/chirp_data.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
+    data_dir: str = "Y1_1_sim/sim_data.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
     bounds_params: torch.Tensor = torch.zeros((25, 2))  # 6 + 6 + 6 + 6 + 1 = 25 parameters to optimize
     joint_order: list[str] = [
         "l_hip_pitch_joint",
@@ -118,7 +118,7 @@ class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
 class Y1_1PaceEnvCfg(PaceSim2realEnvCfg):
 
     scene: Y1_1PaceSceneCfg = Y1_1PaceSceneCfg()
-    sim2real: Y1_1PaceCfg = Y1_1PaceCfg()
+    sim2real: PaceCfg = Y1_1PaceCfg()
 
     def __post_init__(self):
         # post init of parent

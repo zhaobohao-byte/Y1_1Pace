@@ -13,7 +13,7 @@ from isaaclab.app import AppLauncher
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Pace agent for Isaac Lab environments.")
 parser.add_argument("--num_envs", type=int, default=4096, help="Number of environments to simulate.")
-parser.add_argument("--task", type=str, default="Isaac-Pace-Y1_1-v0", help="Name of the task.")
+parser.add_argument("--task", type=str, default="Isaac-Pace-Y1-1-v0", help="Name of the task.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -28,13 +28,14 @@ simulation_app = app_launcher.app
 import gymnasium as gym
 import torch
 
-import isaaclab_tasks  # noqa: F401
+
 from isaaclab_tasks.utils import parse_env_cfg
 
 import pace_sim2real.tasks  # noqa: F401
 from pace_sim2real.utils import project_root
 from pace_sim2real import CMAESOptimizer
 
+import isaaclab_tasks  # noqa: F401
 
 def main():
     """Zero actions agent with Isaac Lab environment."""
@@ -97,7 +98,7 @@ def main():
             # apply actions
             env.step(actions)
             counter += 1
-            if counter % 400 == 0:
+            if counter % 500 == 0:
                 print(f"[INFO]: Step {counter * sim_dt:.1f} / {time_data[-1]:.1f} seconds ({counter / time_steps * 100:.1f} %)")
             if counter >= time_steps:
                 print("[INFO]: Reached the end of the trajectory, exiting.")
