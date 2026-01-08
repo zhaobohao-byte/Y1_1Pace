@@ -100,7 +100,7 @@ def main():
     trajectory = torch.zeros((num_steps, len(joint_ids)), device=env.unwrapped.device)
     trajectory[:, :] = chirp_signal.unsqueeze(-1)
     trajectory_directions = torch.tensor(
-        [1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
+        [1.0, 1.0, 1.0, -1.0, 1.0, 1.0],
         device=env.unwrapped.device
     )
     trajectory_bias = torch.tensor(
