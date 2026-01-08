@@ -31,9 +31,9 @@ import torch
 
 from isaaclab_tasks.utils import parse_env_cfg
 
-import pace_sim2real.tasks  # noqa: F401
-from pace_sim2real.utils import project_root
-from pace_sim2real import CMAESOptimizer
+import Y1_1Pace.tasks  # noqa: F401
+from Y1_1Pace.utils import project_root
+from Y1_1Pace import CMAESOptimizer
 
 import isaaclab_tasks  # noqa: F401
 
