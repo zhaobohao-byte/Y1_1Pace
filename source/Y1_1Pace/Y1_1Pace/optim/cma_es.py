@@ -61,7 +61,7 @@ class CMAESOptimizer:
         self.friction_idx = slice(2 * num_joints, 3 * num_joints)
         self.bias_idx = slice(3 * num_joints, 4 * num_joints)
         self.delay_idx = 4 * num_joints
-        self.init_bias_rad = torch.tensor([0.175, 0.5, 0.0, 0.89, -0.26, 0.0], device=device)  # 这里简单设置初始偏移
+        # self.init_bias_rad = torch.tensor([0.175, 0.5, 0.0, 0.89, -0.26, 0.0], device=device)  # 这里简单设置初始偏移
 
         self._reset_population()
         print("CMA-ES optimizer initialized.")
@@ -117,11 +117,9 @@ class CMAESOptimizer:
         articulation.data.default_joint_viscous_friction_coeff[:, joint_ids] = self.sim_params[:, self.damping_idx]
         articulation.write_joint_friction_coefficient_to_sim(self.sim_params[:, self.friction_idx], joint_ids=joint_ids, env_ids=env_ids)
         articulation.data.default_joint_friction_coeff[:, joint_ids] = self.sim_params[:, self.friction_idx]
-        articulation.write_joint_position_to_sim(initial_position + self.sim_params[:, self.bias_idx], joint_ids=joint_ids)
-        articulation.write_joint_velocity_to_sim(torch.zeros_like(initial_position), joint_ids=joint_ids)
         # init position
-        biased_initial_position = initial_position + self.init_bias_rad 
-        articulation.write_joint_position_to_sim(biased_initial_position, joint_ids=joint_ids)     
+        articulation.write_joint_position_to_sim(initial_position + self.sim_params[:, self.bias_idx], joint_ids=joint_ids)
+        articulation.write_joint_velocity_to_sim(torch.zeros_like(initial_position), joint_ids=joint_ids)        
         for drive_type in articulation.actuators.keys():
             drive_indices = articulation.actuators[drive_type].joint_indices
             if isinstance(drive_indices, slice):
