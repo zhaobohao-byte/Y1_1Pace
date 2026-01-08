@@ -57,7 +57,7 @@ def main():
     joint_order = env_cfg.sim2real.joint_order
     joint_ids = torch.tensor([articulation.joint_names.index(name) for name in joint_order], device=env.unwrapped.device)
 
-    armature = torch.tensor([0.1] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    armature = torch.tensor([0.03] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
     damping = torch.tensor([4.5] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
     friction = torch.tensor([0.05] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
     bias = torch.tensor([0.05] * 6, device=env.unwrapped.device).unsqueeze(0)
@@ -103,8 +103,8 @@ def main():
         [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
         device=env.unwrapped.device
     )
-    trajectory_bias = torch.tensor(
-        [0.0, 0.04, 0.08, 0.02, 0.01, 0.04],
+    init = torch.tensor(
+        [0.0, 0.00, 0.00, 0.00, 0.00, 0.00],
         device=env.unwrapped.device
     )
     trajectory_scale = torch.tensor(
@@ -115,9 +115,9 @@ def main():
         [0.175, 0.5, 0.0, 0.89, -0.26, 0.0],
         device=env.unwrapped.device
     )
-    trajectory[:, joint_ids] = trajectory[:, joint_ids] + trajectory_bias.unsqueeze(0) * trajectory_directions.unsqueeze(0) * trajectory_scale.unsqueeze(0)
+    trajectory[:, joint_ids] = init_bias[joint_ids] + trajectory[:, joint_ids] * trajectory_directions[joint_ids] * trajectory_scale[joint_ids] 
     # init position
-    articulation.write_joint_position_to_sim(trajectory[0, :].unsqueeze(0) + bias[0, joint_ids] + init_bias[joint_ids])
+    articulation.write_joint_position_to_sim(trajectory[0, joint_ids])
     articulation.write_joint_velocity_to_sim(torch.zeros((1, len(joint_ids)), device=env.unwrapped.device))
 
     counter = 0
