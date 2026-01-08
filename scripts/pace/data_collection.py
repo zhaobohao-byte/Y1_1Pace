@@ -100,23 +100,23 @@ def main():
     trajectory = torch.zeros((num_steps, len(joint_ids)), device=env.unwrapped.device)
     trajectory[:, :] = chirp_signal.unsqueeze(-1)
     trajectory_directions = torch.tensor(
-        [1.0, 1.0, 1.0, -1.0, 1.0, 1.0],
+        [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
         device=env.unwrapped.device
     )
     trajectory_bias = torch.tensor(
-        [0.0, 0.4, 0.8, 0.2, 0.1, 0.4],
+        [0.0, 0.04, 0.08, 0.02, 0.01, 0.04],
         device=env.unwrapped.device
     )
     trajectory_scale = torch.tensor(
-        [0.3, 0.5, 0.4, 0.6, 0.6, 0.6],
+        [0.5, 0.5, 0.5, 0.6, 0.5, 0.25],
         device=env.unwrapped.device
     )
     init_bias = torch.tensor(
-        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+        [0.175, 0.5, 0.0, 0.89, -0.26, 0.0],
         device=env.unwrapped.device
     )
     trajectory[:, joint_ids] = trajectory[:, joint_ids] + trajectory_bias.unsqueeze(0) * trajectory_directions.unsqueeze(0) * trajectory_scale.unsqueeze(0)
-
+    # init position
     articulation.write_joint_position_to_sim(trajectory[0, :].unsqueeze(0) + bias[0, joint_ids] + init_bias[joint_ids])
     articulation.write_joint_velocity_to_sim(torch.zeros((1, len(joint_ids)), device=env.unwrapped.device))
 
@@ -125,6 +125,7 @@ def main():
     dof_pos_buffer = torch.zeros(num_steps, len(joint_ids), device=env.unwrapped.device)
     dof_target_pos_buffer = torch.zeros(num_steps, len(joint_ids), device=env.unwrapped.device)
     time_data = t
+
     while simulation_app.is_running():
         # run everything in inference mode
         with torch.inference_mode():
