@@ -2,10 +2,10 @@ from isaaclab.utils import configclass
 # from isaaclab.sim import sim_utils
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg
-from Y1_1Pace.utils import PaceDCMotorCfg
+from Y1_1Pace.utils import PaceDCMotorCfg, project_root
 from Y1_1Pace import PaceSim2realEnvCfg, PaceSim2realSceneCfg, PaceCfg
 import torch
-from pathlib import Path
+import os
 
 
 Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
@@ -90,7 +90,17 @@ class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
     robot: ArticulationCfg = ArticulationCfg(
         prim_path="{ENV_REGEX_NS}/Robot",
         spawn=sim_utils.UrdfFileCfg( 
-            asset_path="/home/bohao/LuvRobot/Y1_1Pace/Y1_1Pace/source/Y1_1Pace/Y1_1Pace/tasks/manager_based/Y1_1_robot/urdf/Y1_1.urdf",  
+            asset_path = os.path.join(
+                project_root(),
+                "source",
+                "Y1_1Pace",
+                "Y1_1Pace",
+                "tasks",
+                "manager_based",
+                "Y1_1_robot",
+                "urdf",
+                "Y1_1.urdf"
+            ), 
             fix_base=True,
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(            
                 enabled_self_collisions=False,
