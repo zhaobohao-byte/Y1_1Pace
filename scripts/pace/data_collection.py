@@ -117,7 +117,7 @@ def main():
     )
     trajectory[:, joint_ids] = trajectory[:, joint_ids] + trajectory_bias.unsqueeze(0) * trajectory_directions.unsqueeze(0) * trajectory_scale.unsqueeze(0)
 
-    articulation.write_joint_position_to_sim(trajectory[0, :].unsqueeze(0) + bias[0, joint_ids] + init_bias[0, joint_ids])
+    articulation.write_joint_position_to_sim(trajectory[0, :].unsqueeze(0) + bias[0, joint_ids] + init_bias[joint_ids])
     articulation.write_joint_velocity_to_sim(torch.zeros((1, len(joint_ids)), device=env.unwrapped.device))
 
     counter = 0
