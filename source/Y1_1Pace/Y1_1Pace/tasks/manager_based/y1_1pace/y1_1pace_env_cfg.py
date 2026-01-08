@@ -2,8 +2,8 @@ from isaaclab.utils import configclass
 # from isaaclab.sim import sim_utils
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg
-from pace_sim2real.utils import PaceDCMotorCfg
-from pace_sim2real import PaceSim2realEnvCfg, PaceSim2realSceneCfg, PaceCfg
+from Y1_1Pace.utils import PaceDCMotorCfg
+from Y1_1Pace import PaceSim2realEnvCfg, PaceSim2realSceneCfg, PaceCfg
 import torch
 from pathlib import Path
 
