@@ -37,4 +37,4 @@ def saveas_pt(npz_path, pt_path):
 if __name__ == "__main__":
     # run the main function
 
-    saveas_pt("/home/bohao/LuvRobot/Y1_1Pace/Y1_1Pace/scripts/pace/data/sim_data.npz", "/home/bohao/LuvRobot/Y1_1Pace/Y1_1Pace/scripts/pace/data/sim_data.pt")
+    saveas_pt("/home/bohao/LuvRobot/Y1_1Pace/data/Y1_1_sim/chrip_data_mujoco.npz", "/home/bohao/LuvRobot/Y1_1Pace/data/Y1_1_sim/chrip_data_mujoco.pt")
