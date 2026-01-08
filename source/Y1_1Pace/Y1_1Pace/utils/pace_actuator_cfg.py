@@ -8,7 +8,7 @@ import torch
 from isaaclab.utils import configclass
 
 from isaaclab.actuators import DCMotorCfg
-from pace_sim2real.utils import pace_actuator
+from Y1_1Pace.utils import pace_actuator
 
 
 @configclass
