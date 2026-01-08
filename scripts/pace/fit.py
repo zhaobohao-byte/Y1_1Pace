@@ -85,7 +85,7 @@ def main():
 
     env.reset()
     opt.update_simulator(articulation, sim_joint_ids, initial_dof_pos)
-
+    
     counter = 0
     # simulate environment
     while simulation_app.is_running():
