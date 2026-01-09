@@ -22,7 +22,7 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
     },
     armature={
         # "l_hip_yaw_joint": 0.012,       # RS-06
-        "l_hip_yaw_joint": 1.0,
+        "l_hip_yaw_joint": 0.10,
     },
 
     stiffness={
