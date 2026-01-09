@@ -47,12 +47,12 @@
     </inertial>
   </link>
 
-  <joint name="l_hip_yaw_joint" type="continuous">
+  <joint name="l_hip_yaw_joint" type="revolute">
     <parent link="l_hip_roll_Link" />
     <child link="l_hip_yaw_Link" />
     <origin xyz="-0.0027 0.0000 -0.0995" rpy="0.0000 0.0000 0.0000" />
     <axis xyz="0.0000 0.0000 1.0000" />
-    <limit effort="10.0" velocity="6" />
+    <limit lower="-2.792526803190927" upper="2.792526803190927" effort="36.0" velocity="10.5" />
     <hardware>
       <motorType>None</motorType>
       <motorDirection>1</motorDirection>

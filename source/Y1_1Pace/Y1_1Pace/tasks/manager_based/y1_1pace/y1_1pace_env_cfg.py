@@ -21,21 +21,21 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
         "l_hip_yaw_joint": 4.0,
     },
     armature={
-        # "l_hip_yaw_joint": 0.012,       # RS-06
-        "l_hip_yaw_joint": 0.10,
+        "l_hip_yaw_joint": 0.012,       # RS-06
+        # "l_hip_yaw_joint": 0.10,
     },
 
     stiffness={
-        # "l_hip_yaw_joint": 47.3741,
-        "l_hip_yaw_joint": 0,
+        "l_hip_yaw_joint": 47.3741,
+        # "l_hip_yaw_joint": 0,
     },
     damping={
-        # "l_hip_yaw_joint": 3.01592894736,
-        "l_hip_yaw_joint": 0,
+        "l_hip_yaw_joint": 3.01592894736,
+        # "l_hip_yaw_joint": 0,
     },
     # encoder_bias=[0.0] * 6,  
     encoder_bias=[0.0],
-    max_delay=1,  
+    max_delay=3,  
 )
 
 
