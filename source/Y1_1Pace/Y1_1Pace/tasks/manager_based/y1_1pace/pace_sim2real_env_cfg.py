@@ -59,9 +59,7 @@ class PaceSim2realSceneCfg(InteractiveSceneCfg):
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
-    # joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=1.0)
-    # joint_vel = mdp.JointVelocityActionCfg(asset_name="robot", joint_names=["l_hip_yaw_joint"], scale=1.0)
-    joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=[".*"], scale=1.0)
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=1.0)
 
 @configclass
 class ObservationsCfg:
@@ -97,9 +95,9 @@ class TerminationsCfg:
 @configclass
 class CMAESOptimizerCfg:
     """CMA-ES optimizer configuration."""
-    max_iteration: int = 300
-    epsilon: float = 1e-5 # 修改的
-    sigma: float = 0.25 
+    max_iteration: int = 100
+    epsilon: float = 1e-3 # 修改的
+    sigma: float = 0.5 
     save_interval: int = 10
     save_optimization_process: bool = False  # consume more disk space if True, saves optimization process after finishing
 

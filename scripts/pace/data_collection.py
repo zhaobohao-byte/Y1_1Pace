@@ -57,11 +57,11 @@ def main():
     joint_order = env_cfg.sim2real.joint_order
     joint_ids = torch.tensor([articulation.joint_names.index(name) for name in joint_order], device=env.unwrapped.device)
 
-    armature = torch.tensor([0.03] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    damping = torch.tensor([4.5] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    friction = torch.tensor([0.05] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    bias = torch.tensor([0.05] * 6, device=env.unwrapped.device).unsqueeze(0)
-    time_lag = torch.tensor([[5]], dtype=torch.int, device=env.unwrapped.device)
+    armature = torch.tensor([0.012] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    damping = torch.tensor([0.05] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    friction = torch.tensor([0.5] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    bias = torch.tensor([0.00] * 1, device=env.unwrapped.device).unsqueeze(0)
+    time_lag = torch.tensor([[1]], dtype=torch.int, device=env.unwrapped.device)
     env.reset()
 
     articulation.write_joint_armature_to_sim(armature, joint_ids=joint_ids, env_ids=torch.arange(len(armature)))

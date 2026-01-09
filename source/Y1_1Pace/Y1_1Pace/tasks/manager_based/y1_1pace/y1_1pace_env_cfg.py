@@ -10,32 +10,29 @@ import os
 
 Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
     joint_names_expr=["l_.*_joint"],      
-    saturation_effort=10.0,
+    saturation_effort=100.0,
     effort_limit={
-        "l_hip_yaw_joint": 5.0,
+        "l_hip_yaw_joint": 36.0,
     },
     velocity_limit={
         "l_hip_yaw_joint": 10.0,
     },
-    velocity_limit_sim={
-        "l_hip_yaw_joint": 4.0,
-    },
     armature={
-        # "l_hip_yaw_joint": 0.012,       # RS-06
-        "l_hip_yaw_joint": 0.10,
+        "l_hip_yaw_joint": 0.012,       # RS-06
+        # "l_hip_yaw_joint": 0.10,
     },
 
     stiffness={
-        # "l_hip_yaw_joint": 47.3741,
-        "l_hip_yaw_joint": 0,
+        "l_hip_yaw_joint": 47.3741,
+        # "l_hip_yaw_joint": 0,
     },
     damping={
-        # "l_hip_yaw_joint": 3.01592894736,
-        "l_hip_yaw_joint": 0,
+        "l_hip_yaw_joint": 3.01592894736,
+        # "l_hip_yaw_joint": 0,
     },
     # encoder_bias=[0.0] * 6,  
     encoder_bias=[0.0],
-    max_delay=1,  
+    # max_delay=10,  
 )
 
 
@@ -47,12 +44,7 @@ class Y1_1PaceCfg(PaceCfg):
     # bounds_params: torch.Tensor = torch.zeros((25, 2))  # 6 + 6 + 6 + 6 + 1 = 25 parameters to optimize
     bounds_params: torch.Tensor = torch.zeros((5, 2))  # 1 = 1 parameters to optimize
     joint_order: list[str] = [
-        "l_hip_pitch_joint",
-        "l_hip_roll_joint",
         "l_hip_yaw_joint",
-        "l_knee_pitch_joint",
-        "l_ankle_pitch_joint",
-        "l_ankle_roll_joint",
     ]
 
     def __post_init__(self):
@@ -60,16 +52,16 @@ class Y1_1PaceCfg(PaceCfg):
         # bounds_params shape: (5, 2) where each row is [lower_bound, upper_bound]
         # Index 0: armature
         self.bounds_params[0, 0] = 1e-5        # armature lower bound
-        self.bounds_params[0, 1] = 0.8         # armature upper bound
+        self.bounds_params[0, 1] = 0.024         # armature upper bound
         # Index 1: dof_damping
         self.bounds_params[1, 0] = 0.0         # dof_damping lower bound
-        self.bounds_params[1, 1] = 10.0        # dof_damping upper bound
+        self.bounds_params[1, 1] = 0.05        # dof_damping upper bound
         # Index 2: friction
-        self.bounds_params[2, 0] = 0.0         # friction lower bound
-        self.bounds_params[2, 1] = 0.50         # friction upper bound
+        self.bounds_params[2, 0] = 0.1         # friction lower bound
+        self.bounds_params[2, 1] = 0.5         # friction upper bound
         # Index 3: bias
-        self.bounds_params[3, 0] = -0.1         # bias lower bound
-        self.bounds_params[3, 1] = 0.1          # bias upper bound
+        self.bounds_params[3, 0] = -0.05         # bias lower bound
+        self.bounds_params[3, 1] = 0.05          # bias upper bound
         # Index 4: delay
         self.bounds_params[4, 0] = 0.0         # delay lower bound
         self.bounds_params[4, 1] = 10.0         # delay upper bound
