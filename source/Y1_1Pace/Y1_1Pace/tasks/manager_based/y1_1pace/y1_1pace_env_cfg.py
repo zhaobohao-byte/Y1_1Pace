@@ -10,50 +10,32 @@ import os
 
 Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
     joint_names_expr=["l_.*_joint"],      
-    saturation_effort=100.0,
+    saturation_effort=10.0,
     effort_limit={
-        "l_hip_pitch_joint": 60.0,
-        "l_hip_roll_joint": 36.0,
-        "l_hip_yaw_joint": 36.0,
-        "l_knee_pitch_joint": 60.0,
-        "l_ankle_pitch_joint": 36.0,
-        "l_ankle_roll_joint": 14.0,
+        "l_hip_yaw_joint": 5.0,
     },
     velocity_limit={
-        "l_hip_pitch_joint": 18.0,
-        "l_hip_roll_joint": 10.0,
         "l_hip_yaw_joint": 10.0,
-        "l_knee_pitch_joint": 18.0,
-        "l_ankle_pitch_joint": 10.0,
-        "l_ankle_roll_joint": 25.0,
+    },
+    velocity_limit_sim={
+        "l_hip_yaw_joint": 4.0,
     },
     armature={
-        "l_hip_pitch_joint": 0.02,      # RS-03
-        "l_hip_roll_joint": 0.012,      # RS-06
-        "l_hip_yaw_joint": 0.012,       # RS-06
-        "l_knee_pitch_joint": 0.02,     # RS-03
-        "l_ankle_pitch_joint": 0.012,   # RS-06
-        "l_ankle_roll_joint": 0.001,    # RS-00
+        # "l_hip_yaw_joint": 0.012,       # RS-06
+        "l_hip_yaw_joint": 1.0,
     },
 
     stiffness={
-        "l_hip_pitch_joint": 78.9568352,
-        "l_hip_roll_joint": 47.3741,
-        "l_hip_yaw_joint": 47.3741,
-        "l_knee_pitch_joint": 78.9568352,    
-        "l_ankle_pitch_joint": 47.3741,
-        "l_ankle_roll_joint": 3.94784176,
+        # "l_hip_yaw_joint": 47.3741,
+        "l_hip_yaw_joint": 0,
     },
     damping={
-        "l_hip_pitch_joint": 5.0265482456,
-        "l_hip_roll_joint": 3.01592894736,
-        "l_hip_yaw_joint": 3.01592894736,
-        "l_knee_pitch_joint": 5.0265482456,
-        "l_ankle_pitch_joint": 3.01592894736,
-        "l_ankle_roll_joint": 0.25132741228,
+        # "l_hip_yaw_joint": 3.01592894736,
+        "l_hip_yaw_joint": 0,
     },
-    encoder_bias=[0.0] * 6,  
-    max_delay=10,  
+    # encoder_bias=[0.0] * 6,  
+    encoder_bias=[0.0],
+    max_delay=1,  
 )
 
 
@@ -62,7 +44,8 @@ class Y1_1PaceCfg(PaceCfg):
     """Pace configuration for Y1_1 robot."""
     robot_name: str = "Y1_1_sim"
     data_dir: str = "Y1_1_sim/chrip_data_mujoco_noise.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
-    bounds_params: torch.Tensor = torch.zeros((25, 2))  # 6 + 6 + 6 + 6 + 1 = 25 parameters to optimize
+    # bounds_params: torch.Tensor = torch.zeros((25, 2))  # 6 + 6 + 6 + 6 + 1 = 25 parameters to optimize
+    bounds_params: torch.Tensor = torch.zeros((5, 2))  # 1 = 1 parameters to optimize
     joint_order: list[str] = [
         "l_hip_pitch_joint",
         "l_hip_roll_joint",
@@ -74,13 +57,22 @@ class Y1_1PaceCfg(PaceCfg):
 
     def __post_init__(self):
         # set bounds for parameters
-        self.bounds_params[:6, 0] = 1e-5        # armature 
-        self.bounds_params[:6, 1] = 0.8        
-        self.bounds_params[6:12, 1] = 10.0       # dof_damping
-        self.bounds_params[12:18, 1] = 1.0      # friction
-        self.bounds_params[18:24, 0] = -0.1     # bias
-        self.bounds_params[18:24, 1] = 0.1     
-        self.bounds_params[24, 1] = 10.0        # delay
+        # bounds_params shape: (5, 2) where each row is [lower_bound, upper_bound]
+        # Index 0: armature
+        self.bounds_params[0, 0] = 1e-5        # armature lower bound
+        self.bounds_params[0, 1] = 0.8         # armature upper bound
+        # Index 1: dof_damping
+        self.bounds_params[1, 0] = 0.0         # dof_damping lower bound
+        self.bounds_params[1, 1] = 10.0        # dof_damping upper bound
+        # Index 2: friction
+        self.bounds_params[2, 0] = 0.0         # friction lower bound
+        self.bounds_params[2, 1] = 0.50         # friction upper bound
+        # Index 3: bias
+        self.bounds_params[3, 0] = -0.1         # bias lower bound
+        self.bounds_params[3, 1] = 0.1          # bias upper bound
+        # Index 4: delay
+        self.bounds_params[4, 0] = 0.0         # delay lower bound
+        self.bounds_params[4, 1] = 10.0         # delay upper bound
 
 @configclass
 class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
@@ -99,7 +91,7 @@ class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
                 "manager_based",
                 "Y1_1_robot",
                 "urdf",
-                "Y1_1.urdf"
+                "Y1_1_Link.urdf"
             ), 
             fix_base=True,
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(            

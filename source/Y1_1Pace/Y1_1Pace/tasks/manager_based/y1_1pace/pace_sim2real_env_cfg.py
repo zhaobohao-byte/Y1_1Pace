@@ -59,8 +59,9 @@ class PaceSim2realSceneCfg(InteractiveSceneCfg):
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=1.0)
-
+    # joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=1.0)
+    # joint_vel = mdp.JointVelocityActionCfg(asset_name="robot", joint_names=["l_hip_yaw_joint"], scale=1.0)
+    joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=[".*"], scale=1.0)
 
 @configclass
 class ObservationsCfg:

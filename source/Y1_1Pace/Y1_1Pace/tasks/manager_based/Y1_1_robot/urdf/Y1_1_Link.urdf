@@ -52,7 +52,7 @@
     <child link="l_hip_yaw_Link" />
     <origin xyz="-0.0027 0.0000 -0.0995" rpy="0.0000 0.0000 0.0000" />
     <axis xyz="0.0000 0.0000 1.0000" />
-    <limit lower="-2.792526803190927" upper="2.792526803190927" effort="36.0" velocity="10.5" />
+    <limit effort="10.0" velocity="6" />
     <hardware>
       <motorType>None</motorType>
       <motorDirection>1</motorDirection>
@@ -60,18 +60,7 @@
     </hardware>
   </joint>
 
-  <joint name="l_knee_pitch_joint" type="fixed">
-    <parent link="l_hip_yaw_Link" />
-    <child link="l_knee_pitch_Link" />
-    <origin xyz="-0.0300 0.0265 -0.1350" rpy="0.0000 0.0000 0.0000" />
-    <axis xyz="0.0000 1.0000 0.0000" />
-    <limit lower="-0.08726646259971647" upper="2.792526803190927" effort="60.0" velocity="18.84" />
-    <hardware>
-      <motorType>None</motorType>
-      <motorDirection>1</motorDirection>
-      <armature>0</armature>
-    </hardware>
-  </joint>
+
 
 
 </robot>
