@@ -57,10 +57,10 @@ def main():
     joint_order = env_cfg.sim2real.joint_order
     joint_ids = torch.tensor([articulation.joint_names.index(name) for name in joint_order], device=env.unwrapped.device)
 
-    armature = torch.tensor([0.01] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    damping = torch.tensor([0.02] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    friction = torch.tensor([0.2] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    bias = torch.tensor([0.00] * 1, device=env.unwrapped.device).unsqueeze(0)
+    armature = torch.tensor([0.012] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    damping = torch.tensor([2.0] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    friction = torch.tensor([0.3] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    bias = torch.tensor([0.001] * 1, device=env.unwrapped.device).unsqueeze(0)
     time_lag = torch.tensor([[1]], dtype=torch.int, device=env.unwrapped.device)
     env.reset()
 
@@ -104,11 +104,11 @@ def main():
         device=env.unwrapped.device
     )
     trajectory_scale = torch.tensor(
-        [0.6] * len(joint_ids),
+        [1.5] * len(joint_ids),
         device=env.unwrapped.device
     )
     init_bias = torch.tensor(
-        [0.0] * len(joint_ids),
+        [0] * len(joint_ids),
         device=env.unwrapped.device
     )
     # trajectory columns already correspond to joint_ids, so use all columns (not joint_ids as indices)
