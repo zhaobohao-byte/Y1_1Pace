@@ -47,7 +47,7 @@
     </inertial>
   </link>
 
-  <joint name="l_hip_yaw_joint" type="continuous">
+  <joint name="l_hip_yaw_joint" type="revolute">
     <parent link="l_hip_roll_Link" />
     <child link="l_hip_yaw_Link" />
     <origin xyz="-0.0027 0.0000 -0.0995" rpy="0.0000 0.0000 0.0000" />
