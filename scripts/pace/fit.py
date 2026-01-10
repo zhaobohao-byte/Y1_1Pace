@@ -37,6 +37,7 @@ from Y1_1Pace import CMAESOptimizer
 
 import isaaclab_tasks  # noqa: F401
 
+
 def main():
     """Zero actions agent with Isaac Lab environment."""
     # parse configuration
@@ -61,10 +62,40 @@ def main():
 
     data = torch.load(data_file)
     time_data = data["time"].to(env.unwrapped.device)
-    target_dof_pos = data["des_dof_pos"].to(env.unwrapped.device)
-    measured_dof_pos = data["dof_pos"].to(env.unwrapped.device)
 
-    initial_dof_pos = target_dof_pos[0, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
+    # Load data and extract only the joints specified in joint_order
+    num_joints_in_data = data["des_dof_pos"].shape[1]
+    num_joints_needed = len(joint_order)
+
+    print(f"[INFO]: Data file contains {num_joints_in_data} joint(s), joint_order specifies {num_joints_needed} joint(s)")
+
+    # Handle single joint case specially to ensure correct dimensions
+    if num_joints_needed == 1:
+        # Single joint case: extract first column and keep 2D shape
+        # Shape: (time_steps, 1)
+        if num_joints_in_data == 1:
+            # Data already has single joint
+            target_dof_pos = data["des_dof_pos"].to(env.unwrapped.device)
+            measured_dof_pos = data["dof_pos"].to(env.unwrapped.device)
+        else:
+            # Extract first joint from multi-joint data, keep 2D
+            target_dof_pos = data["des_dof_pos"][:, 0:1].to(env.unwrapped.device)
+            measured_dof_pos = data["dof_pos"][:, 0:1].to(env.unwrapped.device)
+        print(f"[INFO]: Using single joint data, shape: {target_dof_pos.shape}")
+    else:
+        # Multiple joints case
+        # Shape: (time_steps, num_joints_needed)
+        if num_joints_in_data == num_joints_needed:
+            target_dof_pos = data["des_dof_pos"].to(env.unwrapped.device)
+            measured_dof_pos = data["dof_pos"].to(env.unwrapped.device)
+        else:
+            target_dof_pos = data["des_dof_pos"][:, :num_joints_needed].to(env.unwrapped.device)
+            measured_dof_pos = data["dof_pos"][:, :num_joints_needed].to(env.unwrapped.device)
+        print(f"[INFO]: Using {num_joints_needed} joints data, shape: {target_dof_pos.shape}")
+
+    # initial_dof_pos shape: (num_envs, num_joints_needed)
+    initial_dof_pos = target_dof_pos[0:1, :].repeat(env.unwrapped.num_envs, 1)
+    print(f"[INFO]: initial_dof_pos shape: {initial_dof_pos.shape}")
 
     time_steps = time_data.shape[0]
     sim_dt = env.unwrapped.sim.cfg.dt
@@ -85,16 +116,16 @@ def main():
 
     env.reset()
     opt.update_simulator(articulation, sim_joint_ids, initial_dof_pos)
-    
+
     counter = 0
     # simulate environment
     while simulation_app.is_running():
         # run everything in inference mode
         with torch.inference_mode():
             # compute zero actions
-            opt.tell(env.unwrapped.scene.articulations["robot"].data.joint_pos[:, sim_joint_ids], measured_dof_pos[counter, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1))
+            opt.tell(env.unwrapped.scene.articulations["robot"].data.joint_pos[:, sim_joint_ids], measured_dof_pos[counter:counter + 1, :].repeat(env.unwrapped.num_envs, 1))
             actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
-            actions[:, sim_joint_ids] = target_dof_pos[counter, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
+            actions[:, sim_joint_ids] = target_dof_pos[counter:counter + 1, :].repeat(env.unwrapped.num_envs, 1)
             # apply actions
             env.step(actions)
             counter += 1

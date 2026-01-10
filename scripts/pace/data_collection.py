@@ -57,9 +57,9 @@ def main():
     joint_order = env_cfg.sim2real.joint_order
     joint_ids = torch.tensor([articulation.joint_names.index(name) for name in joint_order], device=env.unwrapped.device)
 
-    armature = torch.tensor([0.012] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    damping = torch.tensor([0.05] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    friction = torch.tensor([0.5] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    armature = torch.tensor([0.01] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    damping = torch.tensor([0.02] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    friction = torch.tensor([0.2] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
     bias = torch.tensor([0.00] * 1, device=env.unwrapped.device).unsqueeze(0)
     time_lag = torch.tensor([[1]], dtype=torch.int, device=env.unwrapped.device)
     env.reset()
@@ -100,20 +100,24 @@ def main():
     trajectory = torch.zeros((num_steps, len(joint_ids)), device=env.unwrapped.device)
     trajectory[:, :] = chirp_signal.unsqueeze(-1)
     trajectory_directions = torch.tensor(
-        [1.0],
+        [1.0] * len(joint_ids),
         device=env.unwrapped.device
     )
     trajectory_scale = torch.tensor(
-        [0.6],
+        [0.6] * len(joint_ids),
         device=env.unwrapped.device
     )
     init_bias = torch.tensor(
-        [0.0],
+        [0.0] * len(joint_ids),
         device=env.unwrapped.device
     )
-    trajectory[:, joint_ids] = init_bias[joint_ids] + trajectory[:, joint_ids] * trajectory_directions[joint_ids] * trajectory_scale[joint_ids] 
+    # trajectory columns already correspond to joint_ids, so use all columns (not joint_ids as indices)
+    # trajectory shape: (num_steps, len(joint_ids))
+    # init_bias, trajectory_directions, trajectory_scale shape: (len(joint_ids),)
+    trajectory[:, :] = init_bias.unsqueeze(0) + trajectory[:, :] * trajectory_directions.unsqueeze(0) * trajectory_scale.unsqueeze(0)
     # init position
-    articulation.write_joint_position_to_sim(trajectory[0, joint_ids])
+    # trajectory[0, :] already contains positions for all joints in joint_ids
+    articulation.write_joint_position_to_sim(trajectory[0, :].unsqueeze(0), joint_ids=joint_ids)
     articulation.write_joint_velocity_to_sim(torch.zeros((1, len(joint_ids)), device=env.unwrapped.device))
 
     counter = 0

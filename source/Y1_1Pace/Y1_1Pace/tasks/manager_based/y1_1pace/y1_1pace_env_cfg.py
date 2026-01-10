@@ -9,7 +9,7 @@ import os
 
 
 Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
-    joint_names_expr=["l_.*_joint"],      
+    joint_names_expr=["l_.*_joint"],
     saturation_effort=100.0,
     effort_limit={
         "l_hip_yaw_joint": 36.0,
@@ -30,9 +30,10 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
         "l_hip_yaw_joint": 3.01592894736,
         # "l_hip_yaw_joint": 0,
     },
-    # encoder_bias=[0.0] * 6,  
+    # encoder_bias=[0.0] * 6,
     encoder_bias=[0.0],
-    # max_delay=10,  
+    # max_delay must be >= upper bound of delay parameter in bounds_params
+    max_delay=10,
 )
 
 
@@ -66,6 +67,7 @@ class Y1_1PaceCfg(PaceCfg):
         self.bounds_params[4, 0] = 0.0         # delay lower bound
         self.bounds_params[4, 1] = 10.0         # delay upper bound
 
+
 @configclass
 class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
     """Configuration for Y1_1 robot in Pace Sim2Real environment.
@@ -73,8 +75,8 @@ class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
 
     robot: ArticulationCfg = ArticulationCfg(
         prim_path="{ENV_REGEX_NS}/Robot",
-        spawn=sim_utils.UrdfFileCfg( 
-            asset_path = os.path.join(
+        spawn=sim_utils.UrdfFileCfg(
+            asset_path=os.path.join(
                 project_root(),
                 "source",
                 "Y1_1Pace",
@@ -84,9 +86,9 @@ class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
                 "Y1_1_robot",
                 "urdf",
                 "Y1_1_Link.urdf"
-            ), 
+            ),
             fix_base=True,
-            articulation_props=sim_utils.ArticulationRootPropertiesCfg(            
+            articulation_props=sim_utils.ArticulationRootPropertiesCfg(
                 enabled_self_collisions=False,
 
             ),
@@ -98,14 +100,13 @@ class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
             ),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.0, 0.0, 2.0),                    
-            rot=(1.0, 0.0, 0.0, 0.0),                 
+            pos=(0.0, 0.0, 2.0),
+            rot=(1.0, 0.0, 0.0, 0.0),
         ),
         actuators={
             "leg_motors": Y1_1_PACE_ACTUATOR_CFG
         },
     )
-
 
 
 @configclass

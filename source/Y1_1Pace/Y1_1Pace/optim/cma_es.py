@@ -110,7 +110,7 @@ class CMAESOptimizer:
         self.sim_params = self._params_to_sim_params(self.params)
 
     def update_simulator(self, articulation, joint_ids, initial_position):
-        env_ids = torch.arange(len(self.sim_params[:, self.armature_idx]))
+        env_ids = torch.arange(len(self.sim_params[:, self.armature_idx]), device=articulation.device)
         articulation.write_joint_armature_to_sim(self.sim_params[:, self.armature_idx], joint_ids=joint_ids, env_ids=env_ids)
         articulation.data.default_joint_armature[:, joint_ids] = self.sim_params[:, self.armature_idx]
         articulation.write_joint_viscous_friction_coefficient_to_sim(self.sim_params[:, self.damping_idx], joint_ids=joint_ids, env_ids=env_ids)
@@ -118,8 +118,12 @@ class CMAESOptimizer:
         articulation.write_joint_friction_coefficient_to_sim(self.sim_params[:, self.friction_idx], joint_ids=joint_ids, env_ids=env_ids)
         articulation.data.default_joint_friction_coeff[:, joint_ids] = self.sim_params[:, self.friction_idx]
         # init position
-        articulation.write_joint_position_to_sim(initial_position + self.sim_params[:, self.bias_idx], joint_ids=joint_ids)
-        articulation.write_joint_velocity_to_sim(torch.zeros_like(initial_position), joint_ids=joint_ids)        
+        # initial_position shape: (num_envs, len(joint_ids))
+        # self.sim_params[:, self.bias_idx] shape: (num_envs, len(joint_ids))
+        articulation.write_joint_position_to_sim(initial_position + self.sim_params[:, self.bias_idx], joint_ids=joint_ids, env_ids=env_ids)
+        articulation.write_joint_velocity_to_sim(torch.zeros_like(initial_position), joint_ids=joint_ids, env_ids=env_ids)
+        # Write all changes to simulation
+        articulation.write_data_to_sim()
         for drive_type in articulation.actuators.keys():
             drive_indices = articulation.actuators[drive_type].joint_indices
             if isinstance(drive_indices, slice):
