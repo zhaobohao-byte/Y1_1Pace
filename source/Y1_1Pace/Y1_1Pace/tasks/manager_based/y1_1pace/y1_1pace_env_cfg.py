@@ -10,12 +10,12 @@ import os
 
 Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
     joint_names_expr=["l_.*_joint"],
-    saturation_effort=100.0,
+    saturation_effort=78.22,
     effort_limit={
         "l_hip_yaw_joint": 36.0,
     },
     velocity_limit={
-        "l_hip_yaw_joint": 10.0,
+        "l_hip_yaw_joint": 52.356,
     },
     armature={
         "l_hip_yaw_joint": 0.012,       # RS-06
@@ -41,7 +41,7 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
 class Y1_1PaceCfg(PaceCfg):
     """Pace configuration for Y1_1 robot."""
     robot_name: str = "Y1_1_sim"
-    data_dir: str = "Y1_1_sim/chrip_data_mujoco_noise.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
+    data_dir: str = "Y1_1_sim/chrip_data.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
     # bounds_params: torch.Tensor = torch.zeros((25, 2))  # 6 + 6 + 6 + 6 + 1 = 25 parameters to optimize
     bounds_params: torch.Tensor = torch.zeros((5, 2))  # 1 = 1 parameters to optimize
     joint_order: list[str] = [
@@ -53,18 +53,16 @@ class Y1_1PaceCfg(PaceCfg):
         # bounds_params shape: (5, 2) where each row is [lower_bound, upper_bound]
         # Index 0: armature
         self.bounds_params[0, 0] = 1e-5        # armature lower bound
-        self.bounds_params[0, 1] = 0.024         # armature upper bound
+        self.bounds_params[0, 1] = 1         # armature upper bound
         # Index 1: dof_damping
-        self.bounds_params[1, 0] = 0.0         # dof_damping lower bound
-        self.bounds_params[1, 1] = 0.05        # dof_damping upper bound
+        self.bounds_params[1, 1] = 7         # dof_damping lower bound
         # Index 2: friction
-        self.bounds_params[2, 0] = 0.1         # friction lower bound
-        self.bounds_params[2, 1] = 0.5         # friction upper bound
+        self.bounds_params[2, 1] = 0.5        # friction upper bound
         # Index 3: bias
-        self.bounds_params[3, 0] = -0.05         # bias lower bound
-        self.bounds_params[3, 1] = 0.05          # bias upper bound
+        self.bounds_params[3, 0] = -0.1       # bias lower bound    
+        self.bounds_params[3, 1] = 0.1        # bias upper bound
+
         # Index 4: delay
-        self.bounds_params[4, 0] = 0.0         # delay lower bound
         self.bounds_params[4, 1] = 10.0         # delay upper bound
 
 
