@@ -11,7 +11,7 @@ import argparse
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Pace agent for Isaac Lab environments.")
-parser.add_argument("--folder_name", type=str, default="26_01_08_10-56-00", help="Name of the folder to use.")
+parser.add_argument("--folder_name", type=str, default=None, help="Name of the folder to use.")
 parser.add_argument("--mean_name", type=str, default=None, help="Name of the parameters file to use.")
 parser.add_argument("--robot_name", type=str, default="Y1_1_sim", help="Name of the robot.")
 parser.add_argument("--plot_trajectory", action="store_true", help="Whether to plot the trajectory.")
@@ -45,7 +45,9 @@ def find_latest_params(root: Path):
         num = int(m.group(1))
         if best is None or num > best[0]:
             best = (num, p)
-    return None if best is None else best[1], best[0]
+    if best is None:
+        return None, None
+    return best[1], best[0]
 
 
 # if no folder_name given, pick the most recent run folder for the robot
