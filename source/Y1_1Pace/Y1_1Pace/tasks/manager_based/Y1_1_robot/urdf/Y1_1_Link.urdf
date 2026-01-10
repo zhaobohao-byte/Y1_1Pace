@@ -19,7 +19,7 @@
     </collision>
     <inertial>
       <origin xyz="0.0113 0.0000 -0.0557" rpy="0.0000 0.0000 0.0000" />
-      <mass value="0.74464439636084" />
+      <mass value="1.0" />
       <inertia ixx="0.0017" ixy="0.0000" ixz="0.0001" iyy="0.0014" iyz="0.0000" izz="0.0010" />
     </inertial>
   </link>
