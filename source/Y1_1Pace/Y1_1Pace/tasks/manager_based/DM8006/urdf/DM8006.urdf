@@ -2,7 +2,7 @@
 <robot name="DM8006">
 
   <link
-    name="left_hip_roll_link">
+    name="l_hip_roll_link">
     <inertial>
       <origin
         xyz="-0.00066826 -0.00074475 0.00076094"
@@ -23,7 +23,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../left_hip_roll_link.STL" />
+          filename="../meshes/left_hip_roll_link.STL" />
       </geometry>
       <material
         name="">
@@ -31,16 +31,39 @@
           rgba="0.89804 0.91765 0.92941 1" />
       </material>
     </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="../meshes/left_hip_roll_link.STL" />
+      </geometry>
+    </collision>
   </link>
   <link
-    name="left_hip_yaw_link">
+    name="l_hip_yaw_link">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.00001" />
+      <inertia
+        ixx="0.00001"
+        ixy="0"
+        ixz="0"
+        iyy="0.00001"
+        iyz="0"
+        izz="0.00001" />
+    </inertial>
     <visual>
       <origin
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="left_hip_yaw_link.STL" />
+          filename="../meshes/left_hip_yaw_link.STL" />
       </geometry>
       <material
         name="">
@@ -48,25 +71,36 @@
           rgba="0.89804 0.91765 0.92941 1" />
       </material>
     </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="../meshes/left_hip_yaw_link.STL" />
+      </geometry>
+    </collision>
   </link>
   <joint
-    name="left_hip_yaw_joint"
+    name="l_hip_yaw_joint"
     type="revolute">
     <origin
       xyz="0 0 0"
       rpy="0 0 0" />
     <parent
-      link="left_hip_roll_link" />
+      link="l_hip_roll_link" />
     <child
-      link="left_hip_yaw_link" />
+      link="l_hip_yaw_link" />
     <axis
       xyz="0 0 1" />
     <limit
-      lower="-1.44"
-      upper="1.44"
-      effort="8"
-      velocity="15.7" />
+      lower="-1.57"
+      upper="1.57"
+      effort="14"
+      velocity="12.56" />
     <dynamics
       damping="0"
       friction="0" />
   </joint>
+
+</robot>

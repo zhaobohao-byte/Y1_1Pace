@@ -86,8 +86,8 @@ def main():
         # Multiple joints case
         # Shape: (time_steps, num_joints_needed)
         if num_joints_in_data == num_joints_needed:
-    target_dof_pos = data["des_dof_pos"].to(env.unwrapped.device)
-    measured_dof_pos = data["dof_pos"].to(env.unwrapped.device)
+            target_dof_pos = data["des_dof_pos"].to(env.unwrapped.device)
+            measured_dof_pos = data["dof_pos"].to(env.unwrapped.device)
         else:
             target_dof_pos = data["des_dof_pos"][:, :num_joints_needed].to(env.unwrapped.device)
             measured_dof_pos = data["dof_pos"][:, :num_joints_needed].to(env.unwrapped.device)

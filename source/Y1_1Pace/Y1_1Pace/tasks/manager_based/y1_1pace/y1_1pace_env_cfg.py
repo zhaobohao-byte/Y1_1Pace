@@ -10,25 +10,28 @@ import os
 
 Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
     joint_names_expr=["l_.*_joint"],
-    saturation_effort=78.22,
+    # saturation_effort=78.22,      # RS-06
+    saturation_effort=30,      # DM-8006
     effort_limit={
-        "l_hip_yaw_joint": 36.0,
+        # "l_hip_yaw_joint": 36.0,     # RS-06
+        "l_hip_yaw_joint": 20,      # DM-8006
     },
     velocity_limit={
-        "l_hip_yaw_joint": 52.356,
+        # "l_hip_yaw_joint": 52.356,    # RS-06
+        "l_hip_yaw_joint": 30.0,      # DM-8006
     },
     armature={
-        "l_hip_yaw_joint": 0.012,       # RS-06
-        # "l_hip_yaw_joint": 0.10,
+        # "l_hip_yaw_joint": 0.012,       # RS-06
+        "l_hip_yaw_joint": 0.0126,      # DM-8006
     },
 
     stiffness={
-        "l_hip_yaw_joint": 47.3741,
-        # "l_hip_yaw_joint": 0,
+        # "l_hip_yaw_joint": 47.3741,      # RS-06
+        "l_hip_yaw_joint": 16.3440,              # DM-8006
     },
     damping={
-        "l_hip_yaw_joint": 3.01592894736,
-        # "l_hip_yaw_joint": 0,
+        # "l_hip_yaw_joint": 3.01592894736,      # RS-06
+        "l_hip_yaw_joint": 1.0400,              # DM-8006
     },
     # encoder_bias=[0.0] * 6,
     encoder_bias=[0.0],
@@ -41,7 +44,7 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
 class Y1_1PaceCfg(PaceCfg):
     """Pace configuration for Y1_1 robot."""
     robot_name: str = "Y1_1_sim"
-    data_dir: str = "Y1_1_sim/chrip_data.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
+    data_dir: str = "DM8006/chrip_data.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
     # bounds_params: torch.Tensor = torch.zeros((25, 2))  # 6 + 6 + 6 + 6 + 1 = 25 parameters to optimize
     bounds_params: torch.Tensor = torch.zeros((5, 2))  # 1 = 1 parameters to optimize
     joint_order: list[str] = [
@@ -81,9 +84,12 @@ class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
                 "Y1_1Pace",
                 "tasks",
                 "manager_based",
-                "Y1_1_robot",
+                # "Y1_1_robot",
+                # "urdf",
+                # "Y1_1_Link.urdf"
+                "DM8006",
                 "urdf",
-                "Y1_1_Link.urdf"
+                "DM8006.urdf"
             ),
             fix_base=True,
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(
