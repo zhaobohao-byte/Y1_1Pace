@@ -61,6 +61,7 @@ class CMAESOptimizer:
         self.friction_idx = slice(2 * num_joints, 3 * num_joints)
         self.bias_idx = slice(3 * num_joints, 4 * num_joints)
         self.tanh_scale_idx = slice(4 * num_joints, 5 * num_joints)
+        self.delay_idx = slice(5 * num_joints, 6 * num_joints)
         # self.init_bias_rad = torch.tensor([0.175, 0.5, 0.0, 0.89, -0.26, 0.0], device=device)  # 这里简单设置初始偏移
 
         self._reset_population()
@@ -130,6 +131,7 @@ class CMAESOptimizer:
             drive_joint_idx = torch.argmax(comparison_matrix.int(), dim=0)
             articulation.actuators[drive_type].update_encoder_bias(self.sim_params[:, self.bias_idx][:, drive_joint_idx])
             articulation.actuators[drive_type].update_tanh_scale(self.sim_params[:, self.tanh_scale_idx][:, drive_joint_idx])
+            articulation.actuators[drive_type].update_time_lags(self.sim_params[:, self.delay_idx][:, drive_joint_idx].to(torch.int))
             articulation.actuators[drive_type].reset(env_ids)
 
     def _print_iteration(self):
@@ -143,6 +145,7 @@ class CMAESOptimizer:
         print("Friction: ", self.sim_params[min_index, self.friction_idx].tolist())
         print("Bias: ", self.sim_params[min_index, self.bias_idx].tolist())
         print("Tanh Scale: ", self.sim_params[min_index, self.tanh_scale_idx].tolist())
+        print("Delay: ", self.sim_params[min_index, self.delay_idx].tolist())
         print(f"Elapsed time: {(datetime.now() - self._timer_start).total_seconds():.1f} seconds")
         self._timer_start = datetime.now()
         self._log()
@@ -160,12 +163,14 @@ class CMAESOptimizer:
         min_score, min_score_index = torch.min(self.scores, dim=0)
         max_score, _ = torch.max(self.scores, dim=0)
         for i in range(len(self.joint_order)):
+            self.writer.add_histogram("6_Delay/distribution_" + self.joint_order[i], self.sim_params[:, self.delay_idx][:, i], self.iteration_counter)
             self.writer.add_histogram("5_Tanh_Scale/distribution_" + self.joint_order[i], self.sim_params[:, self.tanh_scale_idx][:, i], self.iteration_counter)
             self.writer.add_histogram("4_Bias/distribution_" + self.joint_order[i], self.sim_params[:, self.bias_idx][:, i], self.iteration_counter)
             self.writer.add_histogram("3_Friction/distribution_" + self.joint_order[i], self.sim_params[:, self.friction_idx][:, i], self.iteration_counter)
             self.writer.add_histogram("2_Damping/distribution_" + self.joint_order[i], self.sim_params[:, self.damping_idx][:, i], self.iteration_counter)
             self.writer.add_histogram("1_Armature/distribution_" + self.joint_order[i], self.sim_params[:, self.armature_idx][:, i], self.iteration_counter)
 
+            self.writer.add_scalar("6_Delay/best_" + self.joint_order[i], self.sim_params[min_score_index, self.delay_idx][i].item(), self.iteration_counter)
             self.writer.add_scalar("5_Tanh_Scale/best_" + self.joint_order[i], self.sim_params[min_score_index, self.tanh_scale_idx][i].item(), self.iteration_counter)
             self.writer.add_scalar("4_Bias/best_" + self.joint_order[i], self.sim_params[min_score_index, self.bias_idx][i].item(), self.iteration_counter)
             self.writer.add_scalar("3_Friction/best_" + self.joint_order[i], self.sim_params[min_score_index, self.friction_idx][i].item(), self.iteration_counter)

@@ -35,6 +35,8 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
     },
     # encoder_bias=[0.0] * 6,
     encoder_bias=[0.0],
+    # max_delay must be >= upper bound of delay parameter in bounds_params
+    max_delay=10,
     # tanh_scale: scale factor w for tanh(w * torque)
     tanh_scale=100,
 )
@@ -45,20 +47,20 @@ class Y1_1PaceCfg(PaceCfg):
     """Pace configuration for Y1_1 robot."""
     robot_name: str = "Y1_1_sim"
     data_dir: str = "DM8006/chrip_data.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
-    # bounds_params: torch.Tensor = torch.zeros((25, 2))  # 6 + 6 + 6 + 6 + 1 = 25 parameters to optimize
-    bounds_params: torch.Tensor = torch.zeros((5, 2))  # 1 = 1 parameters to optimize
+    # bounds_params: torch.Tensor = torch.zeros((30, 2))  # 6 + 6 + 6 + 6 + 6 = 30 parameters to optimize (full)
+    bounds_params: torch.Tensor = torch.zeros((6, 2))  # 1 + 1 + 1 + 1 + 1 + 1 = 6 parameters to optimize (single joint)
     joint_order: list[str] = [
         "l_hip_yaw_joint",
     ]
 
     def __post_init__(self):
         # set bounds for parameters
-        # bounds_params shape: (5, 2) where each row is [lower_bound, upper_bound]
+        # bounds_params shape: (6, 2) where each row is [lower_bound, upper_bound]
         # Index 0: armature
         self.bounds_params[0, 0] = 1e-5        # armature lower bound
         self.bounds_params[0, 1] = 1         # armature upper bound
         # Index 1: dof_damping
-        self.bounds_params[1, 1] = 7         # dof_damping lower bound
+        self.bounds_params[1, 1] = 7         # dof_damping upper bound
         # Index 2: friction
         self.bounds_params[2, 1] = 0.5        # friction upper bound
         # Index 3: bias
@@ -68,6 +70,10 @@ class Y1_1PaceCfg(PaceCfg):
         # Index 4: tanh_scale (scale factor w for tanh(w * torque))
         self.bounds_params[4, 0] = 1         # tanh_scale lower bound
         self.bounds_params[4, 1] = 1000      # tanh_scale upper bound
+
+        # Index 5: delay (time lag in simulation steps)
+        self.bounds_params[5, 0] = 0         # delay lower bound
+        self.bounds_params[5, 1] = 10        # delay upper bound (must <= max_delay in actuator config)
 
 
 @configclass
