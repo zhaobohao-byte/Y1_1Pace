@@ -16,17 +16,23 @@ if TYPE_CHECKING:
     from .customed_actuator_cfg import CustomedDCMotorCfg
 
 
-class PaceDCMotor(DCMotor):
-    """Pace DC Motor actuator model with first-order low-pass filter.
+class CustomedDCMotor(DCMotor):
+    """Customized DC Motor actuator model with tanh-based torque smoothing.
 
-    The actuator models a DC motor with a first-order low-pass filter applied to the
-    torque output. This simulates the dynamic response characteristics of real actuators,
-    providing smoother torque transitions and more realistic behavior.
+    The actuator models a DC motor with a tanh function applied to the torque output.
+    This provides smooth saturation characteristics and more realistic behavior.
 
-    The filter is implemented using a discrete-time first-order IIR filter:
-        y[n] = alpha * x[n] + (1 - alpha) * y[n-1]
+    The torque output is computed as:
+        tau_out = tanh(w * tau_in) / w
 
-    where alpha = dt / (dt + tau), tau = 1 / (2 * pi * cutoff_frequency)
+    where:
+        - tau_in: input torque from PD controller
+        - w: smoothing coefficient (per joint)
+        - tau_out: output torque after smoothing
+
+    When w = 1, the function approximates linear behavior for small torques.
+    Smaller w values provide more smoothing and earlier saturation.
+    Larger w values provide less smoothing and later saturation.
     """
 
     cfg: CustomedDCMotorCfg
@@ -34,66 +40,71 @@ class PaceDCMotor(DCMotor):
     def __init__(self, cfg: CustomedDCMotorCfg, *args, **kwargs):
         super().__init__(cfg, *args, **kwargs)
 
-        # Calculate filter coefficient alpha
-        # tau = 1 / (2 * pi * cutoff_frequency)
-        # alpha = dt / (dt + tau)
-        dt = self._sim_params.dt  # simulation time step
-        tau = 1.0 / (2.0 * torch.pi * cfg.cutoff_frequency)
-        self.alpha = dt / (dt + tau)
+        # Handle smoothing_coefficient as either a single value or a list
+        if isinstance(cfg.smoothing_coefficient, (list, tuple)):
+            if len(cfg.smoothing_coefficient) != self.num_joints:
+                raise ValueError(
+                    f"smoothing_coefficient must have {self.num_joints} elements (one per joint), "
+                    f"but got {len(cfg.smoothing_coefficient)}: {cfg.smoothing_coefficient}"
+                )
+            smoothing_coeff_tensor = torch.tensor(cfg.smoothing_coefficient,
+                                                  device=self._device, dtype=torch.float32)
+        else:
+            # Single value: apply to all joints
+            smoothing_coeff_tensor = torch.full((self.num_joints,), cfg.smoothing_coefficient,
+                                                device=self._device, dtype=torch.float32)
 
-        # Initialize previous torque values (for filter state)
-        self.prev_torques = torch.zeros(
-            (self._num_envs, self.num_joints),
-            device=self._device,
-            dtype=torch.float32
-        )
-
-        print(f"[PaceDCMotor] Initialized with cutoff frequency: {cfg.cutoff_frequency} Hz")
-        print(f"[PaceDCMotor] Filter coefficient alpha: {self.alpha:.6f}")
-        print(f"[PaceDCMotor] Time constant tau: {tau:.6f} s")
+        # Store smoothing coefficients (w) for each joint
+        self.smoothing_coefficients = smoothing_coeff_tensor  # shape: (num_joints,)
 
     def reset(self, env_ids: Sequence[int]):
         """Reset the actuator state for specified environments."""
         super().reset(env_ids)
-        # Reset filter state for specified environments
-        self.prev_torques[env_ids] = 0.0
 
-    def update_cutoff_frequency(self, cutoff_frequency: float):
-        """Update the cutoff frequency of the low-pass filter.
+    def update_smoothing_coefficient(self, smoothing_coefficient: float | list[float] | torch.Tensor):
+        """Update the smoothing coefficient for the tanh function.
 
         Args:
-            cutoff_frequency: New cutoff frequency in Hz
+            smoothing_coefficient: New smoothing coefficient (w).
+                Can be a single value (applied to all joints),
+                a list of values (one per joint),
+                or a torch.Tensor of shape (num_joints,)
         """
-        dt = self._sim_params.dt
-        tau = 1.0 / (2.0 * torch.pi * cutoff_frequency)
-        self.alpha = dt / (dt + tau)
-        print(f"[PaceDCMotor] Updated cutoff frequency to: {cutoff_frequency} Hz (alpha: {self.alpha:.6f})")
+        # Convert to tensor
+        if isinstance(smoothing_coefficient, torch.Tensor):
+            smoothing_coeff_tensor = smoothing_coefficient.to(self._device)
+        elif isinstance(smoothing_coefficient, (list, tuple)):
+            if len(smoothing_coefficient) != self.num_joints:
+                raise ValueError(
+                    f"smoothing_coefficient must have {self.num_joints} elements, "
+                    f"but got {len(smoothing_coefficient)}"
+                )
+            smoothing_coeff_tensor = torch.tensor(smoothing_coefficient,
+                                                  device=self._device, dtype=torch.float32)
+        else:
+            # Single value: apply to all joints
+            smoothing_coeff_tensor = torch.full((self.num_joints,), smoothing_coefficient,
+                                                device=self._device, dtype=torch.float32)
+
+        self.smoothing_coefficients = smoothing_coeff_tensor
+
+        print(f"[CustomedDCMotor] Updated smoothing coefficients to: {self.smoothing_coefficients.cpu().numpy()}")
 
     def compute(
         self, control_action: ArticulationActions, joint_pos: torch.Tensor, joint_vel: torch.Tensor
     ) -> ArticulationActions:
-        """Compute the actuator torques with low-pass filtering.
-
-        Args:
-            control_action: The control action containing desired joint positions
-            joint_pos: Current joint positions
-            joint_vel: Current joint velocities
-
-        Returns:
-            Filtered control action with smoothed torques
-        """
         # Compute actuator model (DC motor with PD control)
         control_action_sim = super().compute(control_action, joint_pos, joint_vel)
 
-        # Apply first-order low-pass filter to torques
-        # y[n] = alpha * x[n] + (1 - alpha) * y[n-1]
-        filtered_torques = (self.alpha * control_action_sim.joint_efforts
-                            + (1.0 - self.alpha) * self.prev_torques)
+        # Apply tanh-based smoothing: tau_out = tanh(w * tau_in) / w
+        # self.smoothing_coefficients has shape (num_joints,), broadcast to (num_envs, num_joints)
+        w = self.smoothing_coefficients.unsqueeze(0)  # shape: (1, num_joints)
+        tau_in = control_action_sim.joint_efforts  # shape: (num_envs, num_joints)
 
-        # Update previous torques for next iteration
-        self.prev_torques = filtered_torques.clone()
+        # Compute smoothed torques
+        smoothed_torques = torch.tanh(w * tau_in) / w
 
-        # Update control action with filtered torques
-        control_action_sim.joint_efforts = filtered_torques
+        # Update control action with smoothed torques
+        control_action_sim.joint_efforts = smoothed_torques
 
         return control_action_sim
