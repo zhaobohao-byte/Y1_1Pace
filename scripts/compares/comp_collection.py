@@ -127,11 +127,11 @@ def main():
     joint_order = env_cfg.sim2real.joint_order
     joint_ids = torch.tensor([articulation.joint_names.index(name) for name in joint_order], device=env.unwrapped.device)
 
-    armature = torch.tensor([0.0055] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    damping = torch.tensor([2.7120e-06] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    friction = torch.tensor([0.4504] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    bias = torch.tensor([-0.0467] * 1, device=env.unwrapped.device).unsqueeze(0)
-    time_lag = torch.tensor([[3.486177682876587]], dtype=torch.int, device=env.unwrapped.device)
+    armature = torch.tensor([0.0006] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    damping = torch.tensor([0.0045] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    friction = torch.tensor([0.0037] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    bias = torch.tensor([-0.0633] * 1, device=env.unwrapped.device).unsqueeze(0)
+    tanh_scale = torch.tensor([[2.0415916442871094]], dtype=torch.int, device=env.unwrapped.device)
     env.reset()
 
     articulation.write_joint_armature_to_sim(armature, joint_ids=joint_ids, env_ids=torch.arange(len(armature)))
@@ -148,7 +148,7 @@ def main():
             drive_indices = all_idx[drive_indices]
         comparison_matrix = (joint_ids.unsqueeze(1) == drive_indices.unsqueeze(0))
         drive_joint_idx = torch.argmax(comparison_matrix.int(), dim=0)
-        articulation.actuators[drive_type].update_time_lags(time_lag)
+        articulation.actuators[drive_type].update_tanh_scale(tanh_scale[:, drive_joint_idx])
         articulation.actuators[drive_type].update_encoder_bias(bias[:, drive_joint_idx])
         articulation.actuators[drive_type].reset(torch.arange(env.unwrapped.num_envs))
 
