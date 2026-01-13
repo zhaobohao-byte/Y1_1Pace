@@ -141,7 +141,7 @@ ANYDRIVE_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
 class AnymalDPaceCfg(PaceCfg):
     """Pace configuration for Anymal-D robot."""
     robot_name: str = "anymal_d_sim"
-    data_dir: str = "anymal_d_sim/chrip_data.pt"  # located in pace_sim2real/data/anymal_d_sim/chrip_data.pt
+    data_dir: str = "anymal_d_sim/chrip_traj_data.pt"  # located in pace_sim2real/data/anymal_d_sim/chrip_data.pt
     bounds_params: torch.Tensor = torch.zeros((49, 2))  # 12 + 12 + 12 + 12 + 1 = 49 parameters to optimize
     joint_order: list[str] = [
         "LF_HAA",
@@ -166,7 +166,7 @@ class AnymalDPaceCfg(PaceCfg):
         self.bounds_params[24:36, 1] = 1  # friction between 0.0 - 0.5
         self.bounds_params[36:48, 0] = -0.2
         self.bounds_params[36:48, 1] = 0.2  # bias between -0.1 - 0.1 [rad]
-        self.bounds_params[48, 1] = 20.0  # delay between 0.0 - 10.0 [sim steps]
+        self.bounds_params[48, 1] = 10.0  # delay between 0.0 - 10.0 [sim steps]
 
 @configclass
 class ANYmalDPaceSceneCfg(PaceSim2realSceneCfg):

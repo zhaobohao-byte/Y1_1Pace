@@ -166,7 +166,7 @@ def main():
         "des_dof_pos": dof_target_pos_buffer.cpu(),
     }
 
-    save_path = data_dir / "chirp_traj_data.pt"
+    save_path = data_dir / "chrip_sin_traj_data.pt"
     torch.save(data_dict, save_path)
     print(f"[INFO]: Data saved to {save_path}")
     print("[INFO]: Data contains: time, dof_pos, dof_vel, des_dof_pos")
