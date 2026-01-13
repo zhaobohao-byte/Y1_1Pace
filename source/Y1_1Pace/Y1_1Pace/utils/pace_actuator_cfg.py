@@ -3,7 +3,6 @@
 # Licensed under the Apache License 2.0
 
 from __future__ import annotations
-import torch
 
 from isaaclab.utils import configclass
 
@@ -13,10 +12,7 @@ from Y1_1Pace.utils import pace_actuator
 
 @configclass
 class PaceDCMotorCfg(DCMotorCfg):
-    """Configuration for Pace DC Motor actuator model.
-
-    This class extends the base DCMotorCfg with Pace-specific parameters.
-    """
+    """Configuration for Pace DC Motor actuator model with delay."""
     class_type: type = pace_actuator.PaceDCMotor
-    encoder_bias: list[float] | float | None = 0.0
-    max_delay: torch.int | None = 0
+    max_delay: int = 0
+    """Maximum delay in simulation steps."""
