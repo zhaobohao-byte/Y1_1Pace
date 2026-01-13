@@ -34,6 +34,12 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
     },
     # max_delay must be >= upper bound of delay parameter in bounds_params
     max_delay=10,
+    dynamic_friction={
+        "l_hip_yaw_joint": 0.3,
+    },
+    friction={
+        "l_hip_yaw_joint": 0.4,
+    },
 )
 
 
@@ -42,23 +48,26 @@ class Y1_1PaceCfg(PaceCfg):
     """Pace configuration for Y1_1 robot."""
     robot_name: str = "Y1_1_sim"
     data_dir: str = "DM8006/chrip_data.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
-    bounds_params: torch.Tensor = torch.zeros((4, 2))  # armature + damping + friction + delay = 4 parameters
+    bounds_params: torch.Tensor = torch.zeros((5, 2))  # armature + damping + kinetic_friction + static_friction_ratio + delay = 5 parameters
     joint_order: list[str] = [
         "l_hip_yaw_joint",
     ]
 
     def __post_init__(self):
         # set bounds for parameters
-        # bounds_params shape: (4, 2) where each row is [lower_bound, upper_bound]
+        # bounds_params shape: (5, 2) where each row is [lower_bound, upper_bound]
         # Index 0: armature
         self.bounds_params[0, 0] = 1e-5        # armature lower bound
         self.bounds_params[0, 1] = 1           # armature upper bound
         # Index 1: dof_damping
         self.bounds_params[1, 1] = 7           # dof_damping upper bound
-        # Index 2: friction
-        self.bounds_params[2, 1] = 0.5         # friction upper bound
-        # Index 3: delay
-        self.bounds_params[3, 1] = 10.0        # delay upper bound
+        # Index 2: kinetic_friction (动摩擦力)
+        self.bounds_params[2, 1] = 0.5         # kinetic_friction upper bound
+        # Index 3: static_friction_ratio (静摩擦力系数: static = kinetic * ratio)
+        self.bounds_params[3, 0] = 1.0         # static_friction_ratio lower bound (1.0x)
+        self.bounds_params[3, 1] = 1.5         # static_friction_ratio upper bound (1.5x)
+        # Index 4: delay
+        self.bounds_params[4, 1] = 10.0        # delay upper bound
 
 
 @configclass
