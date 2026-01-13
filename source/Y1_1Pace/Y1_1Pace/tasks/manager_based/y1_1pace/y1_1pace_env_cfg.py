@@ -2,13 +2,13 @@ from isaaclab.utils import configclass
 # from isaaclab.sim import sim_utils
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg
-from Y1_1Pace.utils import PaceDCMotorCfg, project_root
+from Y1_1Pace.utils import CustomedDCMotorCfg, project_root
 from Y1_1Pace import PaceSim2realEnvCfg, PaceSim2realSceneCfg, PaceCfg
 import torch
 import os
 
 
-Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
+Y1_1_PACE_ACTUATOR_CFG = CustomedDCMotorCfg(
     joint_names_expr=["l_.*_joint"],
     # saturation_effort=78.22,      # RS-06
     saturation_effort=30,      # DM-8006
@@ -33,8 +33,6 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
         # "l_hip_yaw_joint": 3.01592894736,      # RS-06
         "l_hip_yaw_joint": 1.0400,              # DM-8006
     },
-    # encoder_bias=[0.0] * 6,
-    encoder_bias=[0.0],
     # max_delay must be >= upper bound of delay parameter in bounds_params
     max_delay=10,
 )
@@ -44,7 +42,7 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
 class Y1_1PaceCfg(PaceCfg):
     """Pace configuration for Y1_1 robot."""
     robot_name: str = "Y1_1_sim"
-    data_dir: str = "DM8006/chrip_data.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
+    data_dir: str = "DM8006/raw_data/chrip_data.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
     # bounds_params: torch.Tensor = torch.zeros((25, 2))  # 6 + 6 + 6 + 6 + 1 = 25 parameters to optimize
     bounds_params: torch.Tensor = torch.zeros((5, 2))  # 1 = 1 parameters to optimize
     joint_order: list[str] = [
@@ -61,12 +59,10 @@ class Y1_1PaceCfg(PaceCfg):
         self.bounds_params[1, 1] = 7         # dof_damping lower bound
         # Index 2: friction
         self.bounds_params[2, 1] = 0.5        # friction upper bound
-        # Index 3: bias
-        self.bounds_params[3, 0] = -0.1       # bias lower bound    
-        self.bounds_params[3, 1] = 0.1        # bias upper bound
-
+        # Index 3: smoothing_coefficient
+        self.bounds_params[3, 1] = 100.0         # smoothing_coefficient upper bound
         # Index 4: delay
-        self.bounds_params[4, 1] = 10.0         # delay upper bound
+        self.bounds_params[4, 1] = 5.0         # delay upper bound
 
 
 @configclass

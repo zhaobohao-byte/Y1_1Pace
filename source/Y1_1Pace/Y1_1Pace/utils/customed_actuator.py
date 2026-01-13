@@ -10,29 +10,16 @@ from typing import TYPE_CHECKING
 
 from isaaclab.actuators import DCMotor
 from isaaclab.utils.types import ArticulationActions
+from isaaclab.utils import DelayBuffer
 
 if TYPE_CHECKING:
-    # only for type checking
     from .customed_actuator_cfg import CustomedDCMotorCfg
 
 
 class CustomedDCMotor(DCMotor):
-    """Customized DC Motor actuator model with tanh-based torque smoothing.
+    """DC Motor with tanh smoothing and delay buffer.
 
-    The actuator models a DC motor with a tanh function applied to the torque output.
-    This provides smooth saturation characteristics and more realistic behavior.
-
-    The torque output is computed as:
-        tau_out = tanh(w * tau_in) / w
-
-    where:
-        - tau_in: input torque from PD controller
-        - w: smoothing coefficient (per joint)
-        - tau_out: output torque after smoothing
-
-    When w = 1, the function approximates linear behavior for small torques.
-    Smaller w values provide more smoothing and earlier saturation.
-    Larger w values provide less smoothing and later saturation.
+    Torque: tau_out = tanh(w * tau_in) / w, then delayed.
     """
 
     cfg: CustomedDCMotorCfg
@@ -40,71 +27,59 @@ class CustomedDCMotor(DCMotor):
     def __init__(self, cfg: CustomedDCMotorCfg, *args, **kwargs):
         super().__init__(cfg, *args, **kwargs)
 
-        # Handle smoothing_coefficient as either a single value or a list
+        # Smoothing coefficient
         if isinstance(cfg.smoothing_coefficient, (list, tuple)):
             if len(cfg.smoothing_coefficient) != self.num_joints:
                 raise ValueError(
-                    f"smoothing_coefficient must have {self.num_joints} elements (one per joint), "
-                    f"but got {len(cfg.smoothing_coefficient)}: {cfg.smoothing_coefficient}"
-                )
-            smoothing_coeff_tensor = torch.tensor(cfg.smoothing_coefficient,
-                                                  device=self._device, dtype=torch.float32)
+                    f"smoothing_coefficient must have {self.num_joints} elements, "
+                    f"got {len(cfg.smoothing_coefficient)}")
+            smoothing_coeff = torch.tensor(cfg.smoothing_coefficient,
+                                           device=self._device, dtype=torch.float32)
         else:
-            # Single value: apply to all joints
-            smoothing_coeff_tensor = torch.full((self.num_joints,), cfg.smoothing_coefficient,
-                                                device=self._device, dtype=torch.float32)
+            smoothing_coeff = torch.full((self.num_joints,), cfg.smoothing_coefficient,
+                                         device=self._device, dtype=torch.float32)
 
-        # Store smoothing coefficients (w) for each joint
-        self.smoothing_coefficients = smoothing_coeff_tensor  # shape: (num_joints,)
+        self.smoothing_coefficients = smoothing_coeff
+
+        # Delay buffer
+        self.torques_delay_buffer = DelayBuffer(cfg.max_delay + 1, self._num_envs, device=self._device)
+        self.torques_delay_buffer.set_time_lag(cfg.max_delay, torch.arange(self._num_envs, device=self._device))
 
     def reset(self, env_ids: Sequence[int]):
-        """Reset the actuator state for specified environments."""
         super().reset(env_ids)
+        self.torques_delay_buffer.reset(env_ids)
 
     def update_smoothing_coefficient(self, smoothing_coefficient: float | list[float] | torch.Tensor):
-        """Update the smoothing coefficient for the tanh function.
-
-        Args:
-            smoothing_coefficient: New smoothing coefficient (w).
-                Can be a single value (applied to all joints),
-                a list of values (one per joint),
-                or a torch.Tensor of shape (num_joints,)
-        """
-        # Convert to tensor
+        """Update smoothing coefficient (w)."""
         if isinstance(smoothing_coefficient, torch.Tensor):
-            smoothing_coeff_tensor = smoothing_coefficient.to(self._device)
+            coeff = smoothing_coefficient.to(self._device)
         elif isinstance(smoothing_coefficient, (list, tuple)):
             if len(smoothing_coefficient) != self.num_joints:
-                raise ValueError(
-                    f"smoothing_coefficient must have {self.num_joints} elements, "
-                    f"but got {len(smoothing_coefficient)}"
-                )
-            smoothing_coeff_tensor = torch.tensor(smoothing_coefficient,
-                                                  device=self._device, dtype=torch.float32)
+                raise ValueError(f"Expected {self.num_joints} elements, got {len(smoothing_coefficient)}")
+            coeff = torch.tensor(smoothing_coefficient, device=self._device, dtype=torch.float32)
         else:
-            # Single value: apply to all joints
-            smoothing_coeff_tensor = torch.full((self.num_joints,), smoothing_coefficient,
-                                                device=self._device, dtype=torch.float32)
+            coeff = torch.full((self.num_joints,), smoothing_coefficient,
+                               device=self._device, dtype=torch.float32)
+        self.smoothing_coefficients = coeff
 
-        self.smoothing_coefficients = smoothing_coeff_tensor
-
-        print(f"[CustomedDCMotor] Updated smoothing coefficients to: {self.smoothing_coefficients.cpu().numpy()}")
+    def update_time_lags(self, delay: int | torch.Tensor, env_ids: Sequence[int] | None = None):
+        """Update delay for specified environments."""
+        if env_ids is None:
+            env_ids = torch.arange(self._num_envs, device=self._device)
+        self.torques_delay_buffer.set_time_lag(delay, env_ids)
 
     def compute(
         self, control_action: ArticulationActions, joint_pos: torch.Tensor, joint_vel: torch.Tensor
     ) -> ArticulationActions:
-        # Compute actuator model (DC motor with PD control)
+        # DC motor PD control
         control_action_sim = super().compute(control_action, joint_pos, joint_vel)
 
-        # Apply tanh-based smoothing: tau_out = tanh(w * tau_in) / w
-        # self.smoothing_coefficients has shape (num_joints,), broadcast to (num_envs, num_joints)
-        w = self.smoothing_coefficients.unsqueeze(0)  # shape: (1, num_joints)
-        tau_in = control_action_sim.joint_efforts  # shape: (num_envs, num_joints)
-
-        # Compute smoothed torques
+        # Tanh smoothing: tau_out = tanh(w * tau_in) / w
+        w = self.smoothing_coefficients.unsqueeze(0)
+        tau_in = control_action_sim.joint_efforts
         smoothed_torques = torch.tanh(w * tau_in) / w
 
-        # Update control action with smoothed torques
-        control_action_sim.joint_efforts = smoothed_torques
+        # Apply delay
+        control_action_sim.joint_efforts = self.torques_delay_buffer.compute(smoothed_torques)
 
         return control_action_sim
