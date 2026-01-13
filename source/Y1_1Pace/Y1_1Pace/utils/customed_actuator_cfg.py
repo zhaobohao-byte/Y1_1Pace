@@ -14,7 +14,7 @@ from Y1_1Pace.utils import customed_actuator
 class CustomedDCMotorCfg(DCMotorCfg):
     """DC Motor with tanh smoothing and delay buffer."""
     class_type: type = customed_actuator.CustomedDCMotor
-    smoothing_coefficient: list[float] | float = 10.0
+    smoothing_coefficient: list[int] | int = 10.0
     """Smoothing coefficient (w) for tanh: tau_out = tanh(w * tau_in) / w."""
     max_delay: int = 0
     """Maximum delay in simulation steps."""

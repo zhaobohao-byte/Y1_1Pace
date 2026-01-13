@@ -49,7 +49,7 @@ class CustomedDCMotor(DCMotor):
         super().reset(env_ids)
         self.torques_delay_buffer.reset(env_ids)
 
-    def update_smoothing_coefficient(self, smoothing_coefficient: float | list[float] | torch.Tensor):
+    def update_smoothing_coefficient(self, smoothing_coefficient: int | list[int] | torch.Tensor):
         """Update smoothing coefficient (w)."""
         if isinstance(smoothing_coefficient, torch.Tensor):
             coeff = smoothing_coefficient.to(self._device)
@@ -62,7 +62,7 @@ class CustomedDCMotor(DCMotor):
                                device=self._device, dtype=torch.float32)
         self.smoothing_coefficients = coeff
 
-    def update_time_lags(self, delay: int | torch.Tensor, env_ids: Sequence[int] | None = None):
+    def update_time_lags(self, delay: float | torch.Tensor, env_ids: Sequence[int] | None = None):
         """Update delay for specified environments."""
         if env_ids is None:
             env_ids = torch.arange(self._num_envs, device=self._device)

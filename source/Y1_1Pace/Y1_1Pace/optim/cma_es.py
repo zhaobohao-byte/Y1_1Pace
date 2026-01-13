@@ -116,8 +116,6 @@ class CMAESOptimizer:
         articulation.data.default_joint_viscous_friction_coeff[:, joint_ids] = self.sim_params[:, self.damping_idx]
         articulation.write_joint_friction_coefficient_to_sim(self.sim_params[:, self.friction_idx], joint_ids=joint_ids, env_ids=env_ids)
         articulation.data.default_joint_friction_coeff[:, joint_ids] = self.sim_params[:, self.friction_idx]
-        articulation.write_joint_smoothing_coefficient_to_sim(self.sim_params[:, self.smoothing_coefficient_idx], joint_ids=joint_ids, env_ids=env_ids)
-        articulation.data.default_joint_smoothing_coeff[:, joint_ids] = self.sim_params[:, self.smoothing_coefficient_idx]
         articulation.write_joint_position_to_sim(initial_position, joint_ids=joint_ids, env_ids=env_ids)
         articulation.write_joint_velocity_to_sim(torch.zeros_like(initial_position), joint_ids=joint_ids, env_ids=env_ids)
         # Write all changes to simulation

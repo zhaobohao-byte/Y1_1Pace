@@ -60,7 +60,7 @@ class Y1_1PaceCfg(PaceCfg):
         # Index 2: friction
         self.bounds_params[2, 1] = 0.5        # friction upper bound
         # Index 3: smoothing_coefficient
-        self.bounds_params[3, 1] = 100.0         # smoothing_coefficient upper bound
+        self.bounds_params[3, 1] = 1000        # smoothing_coefficient upper bound
         # Index 4: delay
         self.bounds_params[4, 1] = 5.0         # delay upper bound
 
