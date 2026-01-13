@@ -131,7 +131,11 @@ class CMAESOptimizer:
             drive_joint_idx = torch.argmax(comparison_matrix.int(), dim=0)
             articulation.actuators[drive_type].update_encoder_bias(self.sim_params[:, self.bias_idx][:, drive_joint_idx])
             articulation.actuators[drive_type].update_tanh_scale(self.sim_params[:, self.tanh_scale_idx][:, drive_joint_idx])
-            articulation.actuators[drive_type].update_time_lags(self.sim_params[:, self.delay_idx][:, drive_joint_idx].to(torch.int))
+            # Extract delay values and squeeze to 1D if needed for single joint
+            delay_values = self.sim_params[:, self.delay_idx][:, drive_joint_idx]
+            if delay_values.dim() > 1 and delay_values.shape[1] == 1:
+                delay_values = delay_values.squeeze(1)
+            articulation.actuators[drive_type].update_time_lags(delay_values.to(torch.int))
             articulation.actuators[drive_type].reset(env_ids)
 
     def _print_iteration(self):
