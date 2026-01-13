@@ -57,10 +57,10 @@ def main():
     joint_order = env_cfg.sim2real.joint_order
     joint_ids = torch.tensor([articulation.joint_names.index(name) for name in joint_order], device=env.unwrapped.device)
 
-    armature = torch.tensor([0.03] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    armature = torch.tensor([0.1] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
     damping = torch.tensor([4.5] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
     friction = torch.tensor([0.05] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    bias = torch.tensor([0.05] * 6, device=env.unwrapped.device).unsqueeze(0)
+    bias = torch.tensor([0.05] * 12, device=env.unwrapped.device).unsqueeze(0)
     time_lag = torch.tensor([[5]], dtype=torch.int, device=env.unwrapped.device)
     env.reset()
 
@@ -99,46 +99,54 @@ def main():
 
     trajectory = torch.zeros((num_steps, len(joint_ids)), device=env.unwrapped.device)
     trajectory[:, :] = chirp_signal.unsqueeze(-1)
+
+    phase = 2 * pi * (f0 * t + ((f1 - f0) / (2 * duration)) * t ** 2)
+    chirp_signal = torch.sin(phase)
+
+    trajectory = torch.zeros((num_steps, len(joint_ids)), device=env.unwrapped.device)
+    trajectory[:, :] = chirp_signal.unsqueeze(-1)
     trajectory_directions = torch.tensor(
-        [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        [1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
         device=env.unwrapped.device
     )
-    init = torch.tensor(
-        [0.0, 0.00, 0.00, 0.00, 0.00, 0.00],
+    trajectory_bias = torch.tensor(
+        [0.0, 0.4, 0.8] * 4,
         device=env.unwrapped.device
     )
     trajectory_scale = torch.tensor(
-        [0.5, 0.5, 0.5, 0.6, 0.5, 0.25],
+        [0.25, 0.5, -2.0] * 4,
         device=env.unwrapped.device
     )
-    init_bias = torch.tensor(
-        [0.175, 0.5, 0.0, 0.89, -0.26, 0.0],
-        device=env.unwrapped.device
-    )
-    trajectory[:, joint_ids] = init_bias[joint_ids] + trajectory[:, joint_ids] * trajectory_directions[joint_ids] * trajectory_scale[joint_ids] 
-    # init position
-    articulation.write_joint_position_to_sim(trajectory[0, joint_ids])
-    articulation.write_joint_velocity_to_sim(torch.zeros((1, len(joint_ids)), device=env.unwrapped.device))
+    trajectory[:, joint_ids] = (trajectory[:, joint_ids] + trajectory_bias.unsqueeze(0)) * trajectory_directions.unsqueeze(0) * trajectory_scale.unsqueeze(0)
 
+    articulation.write_joint_position_to_sim(trajectory[0, :].unsqueeze(0) + bias[0, joint_ids])
+    articulation.write_joint_velocity_to_sim(torch.zeros((1, len(joint_ids)), device=env.unwrapped.device))
+    
     counter = 0
     # simulate environment
     dof_pos_buffer = torch.zeros(num_steps, len(joint_ids), device=env.unwrapped.device)
+    dof_vel_buffer = torch.zeros(num_steps, len(joint_ids), device=env.unwrapped.device)
     dof_target_pos_buffer = torch.zeros(num_steps, len(joint_ids), device=env.unwrapped.device)
     time_data = t
 
     while simulation_app.is_running():
         # run everything in inference mode
         with torch.inference_mode():
-            # compute actions
+            # Record joint states (position and velocity)
             dof_pos_buffer[counter, :] = env.unwrapped.scene.articulations["robot"].data.joint_pos[0, joint_ids] - bias[0]
+            dof_vel_buffer[counter, :] = env.unwrapped.scene.articulations["robot"].data.joint_vel[0, joint_ids]
+
+            # Compute actions
             actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
             actions = trajectory[counter % num_steps, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
-            # apply actions
+
+            # Apply actions
             obs, _, _, _, _ = env.step(actions)
             dof_target_pos_buffer[counter, :] = env.unwrapped.scene.articulations["robot"]._data.joint_pos_target[0, joint_ids]
+
             counter += 1
             if counter % 500 == 0:
-                print(f"[INFO]: Step {counter/sample_rate} seconds")
+                print(f"[INFO]: Step {counter/sample_rate:.2f} seconds")
             if counter >= num_steps:
                 break
 
@@ -149,23 +157,44 @@ def main():
     sleep(1)  # wait a bit for everything to settle
 
     (data_dir).mkdir(parents=True, exist_ok=True)
-    torch.save({
+
+    # Save data with velocity information
+    data_dict = {
         "time": time_data.cpu(),
         "dof_pos": dof_pos_buffer.cpu(),
+        "dof_vel": dof_vel_buffer.cpu(),
         "des_dof_pos": dof_target_pos_buffer.cpu(),
-    }, data_dir / "chirp_data.pt")
+    }
+
+    save_path = data_dir / "chirp_traj_data.pt"
+    torch.save(data_dict, save_path)
+    print(f"[INFO]: Data saved to {save_path}")
+    print("[INFO]: Data contains: time, dof_pos, dof_vel, des_dof_pos")
+    print(f"[INFO]: Total samples: {num_steps}, Duration: {duration:.2f}s, Sample rate: {sample_rate:.2f}Hz")
 
     import matplotlib.pyplot as plt
 
+    # Plot position and velocity for each joint
     for i in range(len(joint_ids)):
-        plt.figure()
-        plt.plot(t.cpu().numpy(), dof_pos_buffer[:, i].cpu().numpy(), label=f"{joint_order[i]} pos")
-        plt.plot(t.cpu().numpy(), dof_target_pos_buffer[:, i].cpu().numpy(), label=f"{joint_order[i]} target", linestyle='dashed')
-        plt.title(f"Joint {joint_order[i]} Trajectory")
-        plt.xlabel("Time [s]")
-        plt.ylabel("Joint position [rad]")
-        plt.grid()
-        plt.legend()
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+
+        # Position plot
+        ax1.plot(t.cpu().numpy(), dof_pos_buffer[:, i].cpu().numpy(), label=f"{joint_order[i]} pos", linewidth=2)
+        ax1.plot(t.cpu().numpy(), dof_target_pos_buffer[:, i].cpu().numpy(), label=f"{joint_order[i]} target", linestyle='--', linewidth=1.5)
+        ax1.set_title(f"Joint {joint_order[i]} - Position", fontsize=12, fontweight='bold')
+        ax1.set_xlabel("Time [s]")
+        ax1.set_ylabel("Position [rad]")
+        ax1.grid(True, alpha=0.3)
+        ax1.legend()
+
+        # Velocity plot
+        ax2.plot(t.cpu().numpy(), dof_vel_buffer[:, i].cpu().numpy(), label=f"{joint_order[i]} vel", linewidth=2, color='orange')
+        ax2.set_title(f"Joint {joint_order[i]} - Velocity", fontsize=12, fontweight='bold')
+        ax2.set_xlabel("Time [s]")
+        ax2.set_ylabel("Velocity [rad/s]")
+        ax2.grid(True, alpha=0.3)
+        ax2.legend()
+
         plt.tight_layout()
         plt.show()
 

@@ -96,9 +96,9 @@ class TerminationsCfg:
 @configclass
 class CMAESOptimizerCfg:
     """CMA-ES optimizer configuration."""
-    max_iteration: int = 300
-    epsilon: float = 1e-5 # 修改的
-    sigma: float = 0.25 
+    max_iteration: int = 200
+    epsilon: float = 1e-2 # 修改的
+    sigma: float = 0.5 
     save_interval: int = 10
     save_optimization_process: bool = False  # consume more disk space if True, saves optimization process after finishing
 
