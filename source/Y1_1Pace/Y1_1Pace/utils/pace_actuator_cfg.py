@@ -3,7 +3,6 @@
 # Licensed under the Apache License 2.0
 
 from __future__ import annotations
-import torch
 
 from isaaclab.utils import configclass
 
@@ -19,4 +18,4 @@ class PaceDCMotorCfg(DCMotorCfg):
     """
     class_type: type = pace_actuator.PaceDCMotor
     encoder_bias: list[float] | float | None = 0.0
-    max_delay: torch.int | None = 0
+    tanh_scale: int | list[int] | None = 100  # Scale factor w for tanh(w * torque)

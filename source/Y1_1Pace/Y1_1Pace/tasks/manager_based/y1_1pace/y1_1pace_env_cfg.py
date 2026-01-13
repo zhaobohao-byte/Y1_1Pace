@@ -35,8 +35,8 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
     },
     # encoder_bias=[0.0] * 6,
     encoder_bias=[0.0],
-    # max_delay must be >= upper bound of delay parameter in bounds_params
-    max_delay=10,
+    # tanh_scale: scale factor w for tanh(w * torque)
+    tanh_scale=100,
 )
 
 
@@ -62,11 +62,12 @@ class Y1_1PaceCfg(PaceCfg):
         # Index 2: friction
         self.bounds_params[2, 1] = 0.5        # friction upper bound
         # Index 3: bias
-        self.bounds_params[3, 0] = -0.1       # bias lower bound    
+        self.bounds_params[3, 0] = -0.1       # bias lower bound
         self.bounds_params[3, 1] = 0.1        # bias upper bound
 
-        # Index 4: delay
-        self.bounds_params[4, 1] = 10.0         # delay upper bound
+        # Index 4: tanh_scale (scale factor w for tanh(w * torque))
+        self.bounds_params[4, 0] = 1         # tanh_scale lower bound
+        self.bounds_params[4, 1] = 1000      # tanh_scale upper bound
 
 
 @configclass
