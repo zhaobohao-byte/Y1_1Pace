@@ -12,7 +12,7 @@ import os
 
 
 class CMAESOptimizer:
-    def __init__(self, bounds, population_size, log_dir, joint_order, max_iteration, data, device, epsilon=None, sigma=0.5, save_interval=10, save_optimization_process=False):
+    def __init__(self, bounds, population_size, log_dir, joint_order, max_iteration, data, device, epsilon=None, sigma=0.5, save_interval=10, save_optimization_process=False, pos_weight=1.0, vel_weight=0.1):
 
         self.joint_order = joint_order
         self.max_iteration = max_iteration
@@ -20,6 +20,8 @@ class CMAESOptimizer:
         self.save_interval = save_interval
         self.device = device
         self.save_optimization_process = save_optimization_process
+        self.pos_weight = pos_weight  # Weight for position error
+        self.vel_weight = vel_weight  # Weight for velocity error
         self._timer_start = datetime.now()  # timer for logging purposes
 
         # create log_dir in YY_MM_DD_hh-mm-ss format
@@ -28,12 +30,21 @@ class CMAESOptimizer:
         log_dir = os.path.join(log_dir, folder_time)
         os.makedirs(log_dir, exist_ok=True)
         self.writer = TensorboardSummaryWriter(log_dir=log_dir)
-        torch.save({"bounds": bounds,
-                    "joint_order": joint_order,
-                    "dof_pos": data["dof_pos"],
-                    "des_dof_pos": data["des_dof_pos"],
-                    "time": data["time"]
-                    }, log_dir + "/config.pt")
+        config_data = {
+            "bounds": bounds,
+            "joint_order": joint_order,
+            "dof_pos": data["dof_pos"],
+            "des_dof_pos": data["des_dof_pos"],
+            "time": data["time"],
+            "pos_weight": pos_weight,
+            "vel_weight": vel_weight
+        }
+        # Add velocity data if available
+        if "dof_vel" in data:
+            config_data["dof_vel"] = data["dof_vel"]
+        if "des_dof_vel" in data:
+            config_data["des_dof_vel"] = data["des_dof_vel"]
+        torch.save(config_data, log_dir + "/config.pt")
 
         self.bounds = bounds
 
@@ -47,8 +58,11 @@ class CMAESOptimizer:
         self.iteration_counter = 0
 
         self.scores = torch.zeros(population_size, device=device)
+        self.pos_scores = torch.zeros(population_size, device=device)  # Track position error separately
+        self.vel_scores = torch.zeros(population_size, device=device)  # Track velocity error separately
         self.scores_buffer = torch.zeros((max_iteration, population_size), device=device)
         self.sim_dof_pos_buffer = torch.zeros((population_size, data["dof_pos"].shape[0], len(joint_order)), device=device)
+        self.sim_dof_vel_buffer = torch.zeros((population_size, data["dof_pos"].shape[0], len(joint_order)), device=device)
 
         self.params = torch.zeros((population_size, bounds.shape[0]), device=device)
         self.sim_params = torch.zeros_like(self.params)
@@ -70,13 +84,34 @@ class CMAESOptimizer:
     def ask(self):
         return self.optimizer.ask()
 
-    def tell(self, sim_dof_pos, real_dof_pos):
-        self.scores += torch.sum(torch.square(sim_dof_pos - real_dof_pos - self.sim_params[:, self.bias_idx]), dim=1)
+    def tell(self, sim_dof_pos, real_dof_pos, sim_dof_vel=None, real_dof_vel=None):
+        """Update scores with position and optionally velocity errors.
+
+        Args:
+            sim_dof_pos: Simulated joint positions
+            real_dof_pos: Real/desired joint positions
+            sim_dof_vel: Simulated joint velocities (optional)
+            real_dof_vel: Real/desired joint velocities (optional)
+        """
+        # Position error (with bias compensation)
+        pos_error = torch.sum(torch.square(sim_dof_pos - real_dof_pos - self.sim_params[:, self.bias_idx]), dim=1)
+        self.pos_scores += pos_error
+        self.scores += self.pos_weight * pos_error
+
+        # Velocity error (if provided)
+        if sim_dof_vel is not None and real_dof_vel is not None:
+            vel_error = torch.sum(torch.square(sim_dof_vel - real_dof_vel), dim=1)
+            self.vel_scores += vel_error
+            self.scores += self.vel_weight * vel_error
+            self.sim_dof_vel_buffer[:, self.scores_counter, :] = sim_dof_vel
+
         self.sim_dof_pos_buffer[:, self.scores_counter, :] = sim_dof_pos
         self.scores_counter += 1
 
     def evolve(self):
         self.scores /= self.scores_counter
+        self.pos_scores /= self.scores_counter
+        self.vel_scores /= self.scores_counter
         self.scores_buffer[self.iteration_counter, :] = self.scores
         if self.save_optimization_process:
             self.sim_params_buffer[self.iteration_counter, :, :] = self.sim_params
@@ -91,6 +126,8 @@ class CMAESOptimizer:
         self._reset_population()
 
         self.scores = torch.zeros_like(self.scores)
+        self.pos_scores = torch.zeros_like(self.pos_scores)
+        self.vel_scores = torch.zeros_like(self.vel_scores)
         self.scores_counter = 0
         self.iteration_counter += 1
         print("CMA-ES optimizer iteration: ", self.iteration_counter)
@@ -119,7 +156,7 @@ class CMAESOptimizer:
         articulation.data.default_joint_friction_coeff[:, joint_ids] = self.sim_params[:, self.friction_idx]
         # init position
         articulation.write_joint_position_to_sim(initial_position + self.sim_params[:, self.bias_idx], joint_ids=joint_ids)
-        articulation.write_joint_velocity_to_sim(torch.zeros_like(initial_position), joint_ids=joint_ids)        
+        articulation.write_joint_velocity_to_sim(torch.zeros_like(initial_position), joint_ids=joint_ids)
         for drive_type in articulation.actuators.keys():
             drive_indices = articulation.actuators[drive_type].joint_indices
             if isinstance(drive_indices, slice):
@@ -135,14 +172,21 @@ class CMAESOptimizer:
         min_score = torch.min(self.scores)
         max_score = torch.max(self.scores)
         min_index = torch.argmin(self.scores)
-        print("Max score: ", max_score.item())
-        print("Min score: ", min_score.item(), " at index: ", min_index.item())
-        print("Armature: ", self.sim_params[min_index, self.armature_idx].tolist())
-        print("Damping: ", self.sim_params[min_index, self.damping_idx].tolist())
-        print("Friction: ", self.sim_params[min_index, self.friction_idx].tolist())
-        print("Bias: ", self.sim_params[min_index, self.bias_idx].tolist())
-        print("Delay: ", self.sim_params[min_index, self.delay_idx].tolist())
+        print("=" * 80)
+        print("Total score (weighted):")
+        print(f"  Max: {max_score.item():.6f}")
+        print(f"  Min: {min_score.item():.6f} (at index: {min_index.item()})")
+        print(f"Position error: {self.pos_scores[min_index].item():.6f}")
+        print(f"Velocity error: {self.vel_scores[min_index].item():.6f}")
+        print("-" * 80)
+        print("Best parameters:")
+        print(f"  Armature: {self.sim_params[min_index, self.armature_idx].tolist()}")
+        print(f"  Damping:  {self.sim_params[min_index, self.damping_idx].tolist()}")
+        print(f"  Friction: {self.sim_params[min_index, self.friction_idx].tolist()}")
+        print(f"  Bias:     {self.sim_params[min_index, self.bias_idx].tolist()}")
+        print(f"  Delay:    {self.sim_params[min_index, self.delay_idx].tolist()}")
         print(f"Elapsed time: {(datetime.now() - self._timer_start).total_seconds():.1f} seconds")
+        print("=" * 80)
         self._timer_start = datetime.now()
         self._log()
 
@@ -158,6 +202,15 @@ class CMAESOptimizer:
     def _log(self):
         min_score, min_score_index = torch.min(self.scores, dim=0)
         max_score, _ = torch.max(self.scores, dim=0)
+
+        # Log error components
+        self.writer.add_scalar("0_Episode/score", min_score.item(), self.iteration_counter)
+        self.writer.add_scalar("0_Episode/max_score", max_score.item(), self.iteration_counter)
+        self.writer.add_scalar("0_Episode/diff_score", (max_score - min_score) / min_score, self.iteration_counter)
+        self.writer.add_scalar("0_Episode/pos_error", self.pos_scores[min_score_index].item(), self.iteration_counter)
+        self.writer.add_scalar("0_Episode/vel_error", self.vel_scores[min_score_index].item(), self.iteration_counter)
+
+        # Log parameter distributions and best values
         for i in range(len(self.joint_order)):
             self.writer.add_histogram("4_Bias/distribution_" + self.joint_order[i], self.sim_params[:, self.bias_idx][:, i], self.iteration_counter)
             self.writer.add_histogram("3_Friction/distribution_" + self.joint_order[i], self.sim_params[:, self.friction_idx][:, i], self.iteration_counter)
@@ -168,12 +221,9 @@ class CMAESOptimizer:
             self.writer.add_scalar("3_Friction/best_" + self.joint_order[i], self.sim_params[min_score_index, self.friction_idx][i].item(), self.iteration_counter)
             self.writer.add_scalar("2_Damping/best_" + self.joint_order[i], self.sim_params[min_score_index, self.damping_idx][i].item(), self.iteration_counter)
             self.writer.add_scalar("1_Armature/best_" + self.joint_order[i], self.sim_params[min_score_index, self.armature_idx][i].item(), self.iteration_counter)
+
         self.writer.add_histogram("0_Delay/distribution", self.sim_params[:, self.delay_idx], self.iteration_counter)
         self.writer.add_scalar("0_Delay/best", self.sim_params[min_score_index, self.delay_idx].item(), self.iteration_counter)
-
-        self.writer.add_scalar("0_Episode/score", min_score.item(), self.iteration_counter)
-        self.writer.add_scalar("0_Episode/max_score", max_score.item(), self.iteration_counter)
-        self.writer.add_scalar("0_Episode/diff_score", (max_score - min_score) / min_score, self.iteration_counter)
 
     def save_checkpoint(self, mean, iteration, finished=False):
         min_index = torch.argmin(self.scores_buffer[iteration, :])
