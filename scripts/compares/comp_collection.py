@@ -100,17 +100,14 @@ def main():
     joint_order = env_cfg.sim2real.joint_order
     joint_ids = torch.tensor([articulation.joint_names.index(name) for name in joint_order], device=env.unwrapped.device)
 
-    # armature = torch.tensor([0.0118] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    # damping = torch.tensor([0.1635] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    # friction = torch.tensor([0.4962] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    # bias = torch.tensor([-0.0843] * 1, device=env.unwrapped.device).unsqueeze(0)
-    # time_lag = torch.tensor([[4.502458572387695]], dtype=torch.int, device=env.unwrapped.device)
-    armature = torch.tensor([0.0155] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    damping = torch.tensor([0.2436] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    friction = torch.tensor([0.0860] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    bias = torch.tensor([0.0962] * 1, device=env.unwrapped.device).unsqueeze(0)
-    time_lag = torch.tensor([[5.5014328956604]], dtype=torch.int, device=env.unwrapped.device)
+    armature = torch.tensor([0.1335, 0.1399, 0.1473, 0.1337, 0.1402, 0.1473, 0.1303, 0.1385, 0.1481, 0.1307, 0.1385, 0.1481][:len(joint_ids)], device=env.unwrapped.device).unsqueeze(0)
+    damping = torch.tensor([3.8157, 3.9726, 4.3540, 3.8153, 3.9740, 4.3538, 3.8225, 3.9736, 4.3569, 3.8238, 3.9725, 4.3571][:len(joint_ids)], device=env.unwrapped.device).unsqueeze(0)
+    friction = torch.tensor([0.7059, 0.4992, 0.8779, 0.5109, 0.9561, 0.8770, 0.8894, 0.9306, 0.9817, 0.8181, 0.8903, 0.9746][:len(joint_ids)], device=env.unwrapped.device).unsqueeze(0)
+    bias = torch.tensor([0.0520, 0.0544, -0.0923, 0.0487, 0.0542, -0.0926, 0.0520, 0.0455, 0.1059, 0.0482, 0.0458, 0.1073][:len(joint_ids)], device=env.unwrapped.device).unsqueeze(0)
+    time_lag = torch.tensor([[2.5338687896728516]], dtype=torch.int, device=env.unwrapped.device)
     env.reset()
+
+
 
     articulation.write_joint_armature_to_sim(armature, joint_ids=joint_ids, env_ids=torch.arange(len(armature)))
     articulation.data.default_joint_armature[:, joint_ids] = armature
@@ -130,7 +127,7 @@ def main():
         articulation.actuators[drive_type].update_encoder_bias(bias[:, drive_joint_idx])
         articulation.actuators[drive_type].reset(torch.arange(env.unwrapped.num_envs))
 
-    data_dir = project_root() / "data" / "DM8006_masslink"
+    data_dir = project_root() / "data" 
 
     # Load trajectory from real data
     if args_cli.input_data is None:
@@ -250,13 +247,7 @@ def main():
         "dof_pos": dof_pos_buffer.cpu(),
         "dof_vel": dof_vel_buffer.cpu(),
         "des_dof_pos": dof_target_pos_buffer.cpu(),
-        "real_dof_pos": dof_pos_real.cpu(),
-        "real_des_dof_pos": des_dof_pos_real.cpu(),
     }
-
-    if has_velocity:
-        save_data["real_dof_vel"] = dof_vel_real.cpu()
-
     torch.save(save_data, output_file)
 
     print(f"[INFO]: 仿真数据已保存到: {output_file}")

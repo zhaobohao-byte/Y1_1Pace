@@ -155,7 +155,7 @@ def select_from_menu(options, title="Please select:"):
                 return None
 
 
-def ():
+def interactive_mode():
     """交互式模式"""
     base_data_dir = Path(__file__).parent.parent.parent / "data" / "DM8006"
     
