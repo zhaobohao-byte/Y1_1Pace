@@ -12,7 +12,7 @@ from isaaclab.app import AppLauncher
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Pace agent for Isaac Lab environments.")
-parser.add_argument("--num_envs", type=int, default=4096, help="Number of environments to simulate.")
+parser.add_argument("--num_envs", type=int, default=64, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Pace-Y1-1-v0", help="Name of the task.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -62,43 +62,26 @@ def main():
 
     data = torch.load(data_file)
     time_data = data["time"].to(env.unwrapped.device)
+    target_dof_pos = data["des_dof_pos"].to(env.unwrapped.device)
+    measured_dof_pos = data["dof_pos"].to(env.unwrapped.device)
 
-    # Load data and extract only the joints specified in joint_order
-    num_joints_in_data = data["des_dof_pos"].shape[1]
-    num_joints_needed = len(joint_order)
-
-    print(f"[INFO]: Data file contains {num_joints_in_data} joint(s), joint_order specifies {num_joints_needed} joint(s)")
-
-    # Handle single joint case specially to ensure correct dimensions
-    if num_joints_needed == 1:
-        # Single joint case: extract first column and keep 2D shape
-        # Shape: (time_steps, 1)
-        if num_joints_in_data == 1:
-            # Data already has single joint
-            target_dof_pos = data["des_dof_pos"].to(env.unwrapped.device)
-            measured_dof_pos = data["dof_pos"].to(env.unwrapped.device)
-        else:
-            # Extract first joint from multi-joint data, keep 2D
-            target_dof_pos = data["des_dof_pos"][:, 0:1].to(env.unwrapped.device)
-            measured_dof_pos = data["dof_pos"][:, 0:1].to(env.unwrapped.device)
-        print(f"[INFO]: Using single joint data, shape: {target_dof_pos.shape}")
+    # Load velocity data if available
+    use_velocity = "dof_vel" in data
+    if use_velocity:
+        measured_dof_vel = data["dof_vel"].to(env.unwrapped.device)
+        print("[INFO]: Velocity data loaded. Optimization will use both position and velocity errors.")
     else:
-        # Multiple joints case
-        # Shape: (time_steps, num_joints_needed)
-        if num_joints_in_data == num_joints_needed:
-            target_dof_pos = data["des_dof_pos"].to(env.unwrapped.device)
-            measured_dof_pos = data["dof_pos"].to(env.unwrapped.device)
-        else:
-            target_dof_pos = data["des_dof_pos"][:, :num_joints_needed].to(env.unwrapped.device)
-            measured_dof_pos = data["dof_pos"][:, :num_joints_needed].to(env.unwrapped.device)
-        print(f"[INFO]: Using {num_joints_needed} joints data, shape: {target_dof_pos.shape}")
+        measured_dof_vel = None
+        print("[INFO]: No velocity data found. Optimization will use position error only.")
 
-    # initial_dof_pos shape: (num_envs, num_joints_needed)
-    initial_dof_pos = target_dof_pos[0:1, :].repeat(env.unwrapped.num_envs, 1)
-    print(f"[INFO]: initial_dof_pos shape: {initial_dof_pos.shape}")
+    initial_dof_pos = target_dof_pos[0, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
 
     time_steps = time_data.shape[0]
     sim_dt = env.unwrapped.sim.cfg.dt
+
+    # Get optimization weights from config if available, otherwise use defaults
+    pos_weight = getattr(env_cfg.sim2real.cmaes, 'pos_weight', 1.0)
+    vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', 0.05)
 
     opt = CMAESOptimizer(
         bounds=bounds_params,
@@ -112,27 +95,46 @@ def main():
         sigma=env_cfg.sim2real.cmaes.sigma,
         save_interval=env_cfg.sim2real.cmaes.save_interval,
         save_optimization_process=env_cfg.sim2real.cmaes.save_optimization_process,
+        pos_weight=pos_weight,
+        vel_weight=vel_weight,
     )
+    print(f"[INFO]: Optimization weights - Position: {pos_weight}, Velocity: {vel_weight}")
 
     env.reset()
     opt.update_simulator(articulation, sim_joint_ids, initial_dof_pos)
-    
+
     counter = 0
     # simulate environment
     while simulation_app.is_running():
         # run everything in inference mode
         with torch.inference_mode():
-            # compute zero actions
-            opt.tell(env.unwrapped.scene.articulations["robot"].data.joint_pos[:, sim_joint_ids], measured_dof_pos[counter:counter + 1, :].repeat(env.unwrapped.num_envs, 1))
+            # Get current simulated joint states
+            sim_joint_pos = env.unwrapped.scene.articulations["robot"].data.joint_pos[:, sim_joint_ids]
+            sim_joint_vel = env.unwrapped.scene.articulations["robot"].data.joint_vel[:, sim_joint_ids]
+
+            # Get measured/target states for current timestep
+            measured_pos = measured_dof_pos[counter, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
+
+            # Update optimizer with position and optionally velocity data
+            if use_velocity:
+                measured_vel = measured_dof_vel[counter, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
+                opt.tell(sim_joint_pos, measured_pos, sim_joint_vel, measured_vel)
+            else:
+                opt.tell(sim_joint_pos, measured_pos)
+
+            # Set target position actions
             actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
-            actions[:, sim_joint_ids] = target_dof_pos[counter:counter + 1, :].repeat(env.unwrapped.num_envs, 1)
+            actions[:, sim_joint_ids] = target_dof_pos[counter, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
+
             # apply actions
             env.step(actions)
             counter += 1
+
             if counter % 500 == 0:
                 print(f"[INFO]: Step {counter * sim_dt:.1f} / {time_data[-1]:.1f} seconds ({counter / time_steps * 100:.1f} %)")
+
             if counter >= time_steps:
-                print("[INFO]: Reached the end of the trajectory, exiting.")
+                print("[INFO]: Reached the end of the trajectory.")
                 counter = 0
                 opt.evolve()
                 if opt.finished():
