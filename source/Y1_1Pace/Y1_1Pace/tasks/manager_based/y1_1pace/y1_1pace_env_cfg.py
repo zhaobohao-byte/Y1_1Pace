@@ -44,7 +44,7 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
 class Y1_1PaceCfg(PaceCfg):
     """Pace configuration for Y1_1 robot."""
     robot_name: str = "Y1_1_sim"
-    data_dir: str = "DM8006/chrip_data.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
+    data_dir: str = "DM8006_masslink/chrip_data.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
     # bounds_params: torch.Tensor = torch.zeros((25, 2))  # 6 + 6 + 6 + 6 + 1 = 25 parameters to optimize
     bounds_params: torch.Tensor = torch.zeros((5, 2))  # 1 = 1 parameters to optimize
     joint_order: list[str] = [
@@ -87,9 +87,9 @@ class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
                 # "Y1_1_robot",
                 # "urdf",
                 # "Y1_1_Link.urdf"
-                "DM8006",
+                "DM8006_with_linkmass",
                 "urdf",
-                "DM8006.urdf"
+                "DM8006_with_linkmass.urdf"
             ),
             fix_base=True,
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(
