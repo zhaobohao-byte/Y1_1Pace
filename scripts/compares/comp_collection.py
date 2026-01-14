@@ -100,11 +100,16 @@ def main():
     joint_order = env_cfg.sim2real.joint_order
     joint_ids = torch.tensor([articulation.joint_names.index(name) for name in joint_order], device=env.unwrapped.device)
 
-    armature = torch.tensor([0.0118] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    damping = torch.tensor([0.1635] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    friction = torch.tensor([0.4962] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
-    bias = torch.tensor([-0.0843] * 1, device=env.unwrapped.device).unsqueeze(0)
-    time_lag = torch.tensor([[4.502458572387695]], dtype=torch.int, device=env.unwrapped.device)
+    # armature = torch.tensor([0.0118] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    # damping = torch.tensor([0.1635] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    # friction = torch.tensor([0.4962] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    # bias = torch.tensor([-0.0843] * 1, device=env.unwrapped.device).unsqueeze(0)
+    # time_lag = torch.tensor([[4.502458572387695]], dtype=torch.int, device=env.unwrapped.device)
+    armature = torch.tensor([0.0155] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    damping = torch.tensor([0.2436] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    friction = torch.tensor([0.0860] * len(joint_ids), device=env.unwrapped.device).unsqueeze(0)
+    bias = torch.tensor([0.0962] * 1, device=env.unwrapped.device).unsqueeze(0)
+    time_lag = torch.tensor([[5.5014328956604]], dtype=torch.int, device=env.unwrapped.device)
     env.reset()
 
     articulation.write_joint_armature_to_sim(armature, joint_ids=joint_ids, env_ids=torch.arange(len(armature)))
@@ -167,7 +172,16 @@ def main():
     t = input_data["time"].to(device)
     des_dof_pos_real = input_data["des_dof_pos"]  # (num_steps, n_joints)
     dof_pos_real = input_data["dof_pos"]  # (num_steps, n_joints)
-    
+
+    # 检查是否有速度数据
+    has_velocity = "dof_vel" in input_data
+    if has_velocity:
+        dof_vel_real = input_data["dof_vel"]  # (num_steps, n_joints)
+        print("[INFO]: 发现速度数据，将进行位置和速度比较")
+    else:
+        dof_vel_real = None
+        print("[INFO]: 未发现速度数据，仅进行位置比较")
+
     num_steps = len(t)
     sample_rate = 1 / (t[1] - t[0])  # Hz
     n_data_joints = des_dof_pos_real.shape[1]
@@ -177,22 +191,26 @@ def main():
         # 数据关节数匹配
         trajectory = des_dof_pos_real.to(device)
         init_pos = dof_pos_real[0, :].to(device)
+        init_vel = dof_vel_real[0, :].to(device) if has_velocity else torch.zeros(len(joint_ids), device=device)
     elif n_data_joints == 1:
         # 单关节数据，复制到所有关节
         trajectory = des_dof_pos_real.repeat(1, len(joint_ids)).to(device)
         init_pos = dof_pos_real[0, 0].repeat(len(joint_ids)).to(device)
+        init_vel = dof_vel_real[0, 0].repeat(len(joint_ids)).to(device) if has_velocity else torch.zeros(len(joint_ids), device=device)
     else:
         raise ValueError(f"数据关节数 ({n_data_joints}) 与配置关节数 ({len(joint_ids)}) 不匹配")
 
     print(f"[INFO]: 加载真实数据轨迹")
-    print(f"[INFO]: 时间范围: {t[0]:.4f} - {t[-1]:.4f} 秒")
-    print(f"[INFO]: 采样率: {sample_rate:.1f} Hz")
+    print(f"[INFO]: 时间范围: {t[0].item():.4f} - {t[-1].item():.4f} 秒")
+    print(f"[INFO]: 采样率: {sample_rate.item():.1f} Hz")
     print(f"[INFO]: 数据点数: {num_steps}")
     print(f"[INFO]: 数据关节数: {n_data_joints}, 仿真关节数: {len(joint_ids)}")
 
     print(f"[INFO]: 初始位置（实际测量值）: {init_pos.cpu().numpy()}")
+    if has_velocity:
+        print(f"[INFO]: 初始速度（实际测量值）: {init_vel.cpu().numpy()}")
     articulation.write_joint_position_to_sim(init_pos.unsqueeze(0), joint_ids=joint_ids)
-    articulation.write_joint_velocity_to_sim(torch.zeros((1, len(joint_ids)), device=device))
+    articulation.write_joint_velocity_to_sim(init_vel.unsqueeze(0), joint_ids=joint_ids)
     articulation.write_data_to_sim()
 
     # 初始化缓冲区
@@ -218,7 +236,7 @@ def main():
             
             counter += 1
             if counter % 500 == 0:
-                print(f"[INFO]: Step {counter/sample_rate:.2f} seconds")
+                print(f"[INFO]: Step {counter/sample_rate.item():.2f} seconds")
 
     env.close()
 
@@ -227,12 +245,19 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     output_file = output_dir / f"{input_data_path.stem}_{output_suffix}.pt"
 
-    torch.save({
+    save_data = {
         "time": t.cpu(),
         "dof_pos": dof_pos_buffer.cpu(),
         "dof_vel": dof_vel_buffer.cpu(),
         "des_dof_pos": dof_target_pos_buffer.cpu(),
-    }, output_file)
+        "real_dof_pos": dof_pos_real.cpu(),
+        "real_des_dof_pos": des_dof_pos_real.cpu(),
+    }
+
+    if has_velocity:
+        save_data["real_dof_vel"] = dof_vel_real.cpu()
+
+    torch.save(save_data, output_file)
 
     print(f"[INFO]: 仿真数据已保存到: {output_file}")
 
