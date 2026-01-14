@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="DM8006">
+
+  <link
+    name="l_hip_roll_link">
+    <inertial>
+      <origin
+        xyz="-0.00066826 -0.00074475 -0.00076094"
+        rpy="0 0 0" />
+      <mass
+        value="0.4813" />
+      <inertia
+        ixx="0.0002035"
+        ixy="-1.0034E-05"
+        ixz="-1.8707E-06"
+        iyy="0.00026097"
+        iyz="-2.2574E-06"
+        izz="0.00041524" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="3.14159 0 0" />
+      <geometry>
+        <mesh
+          filename="../meshes/left_hip_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="3.14159 0 0" />
+      <geometry>
+        <mesh
+          filename="../meshes/left_hip_roll_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="l_hip_yaw_link">
+    <visual>
+      <origin xyz="0.05 0 0" rpy="0 1.5708 0"/>
+      <geometry>
+        <cylinder length="0.1" radius="0.006"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0.1 0.1 0.1 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0.05 0 0" rpy="0 1.5708 0"/>
+      <geometry>
+        <cylinder length="0.1" radius="0.006"/>
+      </geometry>
+    </collision>
+    
+    <!-- 轻质连杆，质量给非常小 -->
+    <inertial>
+      <origin xyz="0.05 0 0" rpy="0 0 0"/>
+      <mass value="0.015"/>    <!-- 非常轻 -->
+      <inertia ixx="0.0000005" ixy="0.0" ixz="0.0" 
+               iyy="0.00001" iyz="0.0" izz="0.00001"/>
+    </inertial>
+  </link>
+  
+  <!-- ====================== 末端质量块 (圆柱形 0.5kg) ====================== -->
+  <link name="mass">
+    <visual>
+      <origin xyz="0 0 0.009175" rpy="0 0 0"/>
+      <geometry>
+        <!-- 直径67.95mm，高度18.35mm的圆柱，z轴朝上 -->
+        <cylinder length="0.01835" radius="0.033975"/>
+      </geometry>
+      <material name="iron">
+        <color rgba="0.8 0.4 0.2 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0.009175" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.01835" radius="0.033975"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <origin xyz="0 0 0.009175" rpy="0 0 0"/>
+      <mass value="0.5"/>
+      <!-- 圆柱绕中心轴惯量计算: r=0.033975m, h=0.01835m -->
+      <!-- Izz = mr²/2 (绕长轴z) -->
+      <!-- Ixx = Iyy = m(3r²+h²)/12 (绕垂直轴) -->
+      <inertia ixx="0.000187" ixy="0.0" ixz="0.0" 
+               iyy="0.000187" iyz="0.0" 
+               izz="0.000289"/>
+    </inertial>
+  </link>
+  
+  <!-- 末端质量与连杆固连 -->
+  <joint name="mass_fixed_joint" type="fixed">
+    <parent link="l_hip_yaw_link"/>
+    <child link="mass"/>
+    <!-- 连杆末端在x=0.1，质量块底部在连杆末端 -->
+    <origin xyz="0.1 0 0" rpy="0 0 0"/>
+  </joint>
+  
+  <joint
+    name="l_hip_yaw_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0.03"
+      rpy="0 0 0" />
+    <parent
+      link="l_hip_roll_link" />
+    <child
+      link="l_hip_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="14"
+      velocity="12.56" />
+    <dynamics
+      damping="0"
+      friction="0" />
+  </joint>
+
+</robot>
