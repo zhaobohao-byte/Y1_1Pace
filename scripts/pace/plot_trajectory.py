@@ -28,7 +28,7 @@ current_dir = Path(__file__).parent.resolve()
 project_root = current_dir.parent.parent
 
 # folder_name = "25_10_24_12-05-07"
-log_dir = project_root / "logs" / "pace" / robot_name
+log_dir = project_root / "logs" / "pace" / "anymal_d_sim"
 
 if not log_dir.exists():
     raise FileNotFoundError(f"No logs for robot {robot_name} under {log_dir}")
@@ -45,7 +45,7 @@ def find_latest_params(root: Path):
         num = int(m.group(1))
         if best is None or num > best[0]:
             best = (num, p)
-    return None if best is None else best[1], best[0]
+    return (None, None) if best is None else (best[1], best[0])
 
 
 # if no folder_name given, pick the most recent run folder for the robot
