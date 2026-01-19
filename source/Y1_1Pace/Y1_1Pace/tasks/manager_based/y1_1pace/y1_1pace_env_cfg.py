@@ -77,9 +77,9 @@ class Y1_1PaceCfg(PaceCfg):
     def __post_init__(self):
         # set bounds for parameters
         self.bounds_params[:6, 0] = 1e-5        # armature 
-        self.bounds_params[:6, 1] = 0.8        
+        self.bounds_params[:6, 1] = 1        
         self.bounds_params[6:12, 1] = 10.0       # dof_damping
-        self.bounds_params[12:18, 1] = 1.0      # friction
+        self.bounds_params[12:18, 1] = 2.0      # friction
         self.bounds_params[18:24, 0] = -0.1     # bias
         self.bounds_params[18:24, 1] = 0.1     
         self.bounds_params[24, 1] = 10.0        # delay
@@ -91,14 +91,14 @@ Atom3DOF_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
     joint_names_expr=["right_hip_pitch_joint", "right_knee_joint", "right_ankle_joint"],      
     saturation_effort=100.0,
     effort_limit={
-        "right_hip_pitch_joint": 60.0,
-        "right_knee_joint": 60.0,
-        "right_ankle_joint": 36.0,
+        "right_hip_pitch_joint": 20.0,
+        "right_knee_joint": 20.0,
+        "right_ankle_joint": 12.0,
     },
     velocity_limit={
-        "right_hip_pitch_joint": 18.0,
-        "right_knee_joint": 18.0,
-        "right_ankle_joint": 10.0,
+        "right_hip_pitch_joint": 22.0,
+        "right_knee_joint": 22.0,
+        "right_ankle_joint": 25.13,
     },
     armature={
         "right_hip_pitch_joint": 0.00414,
