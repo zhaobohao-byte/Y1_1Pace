@@ -57,6 +57,7 @@ Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
 )
 
 
+
 @configclass
 class Y1_1PaceCfg(PaceCfg):
     """Pace configuration for Y1_1 robot."""
