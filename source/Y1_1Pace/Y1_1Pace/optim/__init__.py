@@ -2,5 +2,5 @@
 # Author: Filip Bjelonic
 # Licensed under the Apache License 2.0
 
-from .cma_es import CMAESOptimizer
+from .cma_es_pv import CMAESOptimizer
 __all__ = ["CMAESOptimizer"]
