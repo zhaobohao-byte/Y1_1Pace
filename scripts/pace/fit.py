@@ -81,8 +81,8 @@ def main():
 
     # Get optimization weights from config if available, otherwise use defaults
     pos_weight = getattr(env_cfg.sim2real.cmaes, 'pos_weight', 1.0)
-    # vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', 0.1)  # 使用速度加权
-    vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', 0.0)  # 不使用速度加权
+    vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', 0.1)  # 使用速度加权
+    #vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', 0.0)  # 不使用速度加权
 
     opt = CMAESOptimizer(
         bounds=bounds_params,
