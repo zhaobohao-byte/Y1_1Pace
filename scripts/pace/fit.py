@@ -72,7 +72,6 @@ def main():
 
     # Get optimization weights from config if available, otherwise use defaults
     pos_weight = getattr(env_cfg.sim2real.cmaes, 'pos_weight', 1.0)
-<<<<<<< HEAD
     vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', None)
 
     # Determine if velocity should be used: both data available AND vel_weight is set
@@ -89,10 +88,8 @@ def main():
         elif vel_weight is None or vel_weight == 0.0:
             print(f"[INFO]: Velocity weight is {vel_weight}. Optimization will use position error only.")
         print(f"[INFO]: Optimization weights - Position: {pos_weight}")
-=======
     vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', 0.1)  # 使用速度加权
     #vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', 0.0)  # 不使用速度加权
->>>>>>> 28f44633d50ab560d4ad664c9838328ead7b7263
 
     opt = CMAESOptimizer(
         bounds=bounds_params,
