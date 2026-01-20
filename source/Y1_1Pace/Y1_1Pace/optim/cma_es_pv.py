@@ -40,7 +40,7 @@ class CMAESOptimizer:
                     "vel_weight": vel_weight
         }
         # Add velocity data if available
-        if "dof_vel" in data and self.vel_weight != 0.0:
+        if "dof_vel" in data and self.vel_weight is not None:
             config_data["dof_vel"] = data["dof_vel"]
         torch.save(config_data, log_dir + "/config.pt")
         self.bounds = bounds
@@ -58,7 +58,7 @@ class CMAESOptimizer:
         self.pos_scores = torch.zeros(population_size, device=device)  # Track position error separately
         self.scores_buffer = torch.zeros((max_iteration, population_size), device=device)
         self.sim_dof_pos_buffer = torch.zeros((population_size, data["dof_pos"].shape[0], len(joint_order)), device=device)
-        if "dof_vel" in data and self.vel_weight != 0.0:
+        if "dof_vel" in data and self.vel_weight is not None:
             self.vel_scores = torch.zeros(population_size, device=device)  # Track velocity error separately
         # 始终记录velocity数据
         self.sim_dof_vel_buffer = torch.zeros((population_size, data["dof_pos"].shape[0], len(joint_order)), device=device)
@@ -88,7 +88,7 @@ class CMAESOptimizer:
         self.scores += self.pos_weight * pos_error
 
         # Velocity error (if provided)
-        if sim_dof_vel is not None and real_dof_vel is not None and self.vel_weight != 0.0:
+        if sim_dof_vel is not None and real_dof_vel is not None and self.vel_weight is not None:
             vel_error = torch.sum(torch.square(sim_dof_vel - real_dof_vel), dim=1)
             self.vel_scores += vel_error
             self.scores += self.vel_weight * vel_error
@@ -99,7 +99,7 @@ class CMAESOptimizer:
 
     def evolve(self):
         self.scores /= self.scores_counter
-        if self.vel_weight != 0.0 and self.sim_dof_vel_buffer is not None:
+        if self.vel_weight is not None and self.sim_dof_vel_buffer is not None:
             self.vel_scores /= self.scores_counter
         self.pos_scores /= self.scores_counter
         self.scores_buffer[self.iteration_counter, :] = self.scores
@@ -165,7 +165,7 @@ class CMAESOptimizer:
         print(f"  Max: {max_score.item():.6f}")
         print(f"  Min: {min_score.item():.6f} (at index: {min_index.item()})")
         print(f"Position error: {self.pos_scores[min_index].item():.6f}")
-        if self.vel_weight != 0.0 and self.sim_dof_vel_buffer is not None:
+        if self.vel_weight is not None and self.sim_dof_vel_buffer is not None:
             print(f"Velocity error: {self.vel_scores[min_index].item():.6f}")
         print("-" * 80)
         print("Best parameters:")
@@ -207,7 +207,7 @@ class CMAESOptimizer:
 
         self.writer.add_histogram("0_Delay/distribution", self.sim_params[:, self.delay_idx], self.iteration_counter)
         self.writer.add_scalar("0_Delay/best", self.sim_params[min_score_index, self.delay_idx].item(), self.iteration_counter)
-        if self.vel_weight != 0.0 and self.sim_dof_vel_buffer is not None:
+        if self.vel_weight is not None and self.sim_dof_vel_buffer is not None:
             # Log error components
             self.writer.add_scalar("0_Episode/score", min_score.item(), self.iteration_counter)
             self.writer.add_scalar("0_Episode/max_score", max_score.item(), self.iteration_counter)
