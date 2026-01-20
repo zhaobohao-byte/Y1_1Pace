@@ -3,6 +3,7 @@ from isaaclab.utils import configclass
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg
 from Y1_1Pace.utils import PaceDCMotorCfg, project_root
+from Y1_1Pace.utils import PaceImplicitActuatorCfg
 from Y1_1Pace import PaceSim2realEnvCfg, PaceSim2realSceneCfg, PaceCfg
 import torch
 import os
@@ -87,9 +88,9 @@ class Y1_1PaceCfg(PaceCfg):
 ################################################################################
 #  Atom3DOF_PACE_ACTUATOR_CFG is the actuator configuration for the Atom3DOF robot in the Pace Sim2Real environment.
 ################################################################################
-Atom3DOF_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
+# Atom3DOF_PACE_ACTUATOR_CFG = PaceDCMotorCfg(               # use DC motor model
+Atom3DOF_PACE_ACTUATOR_CFG = PaceImplicitActuatorCfg(         # use implicit actuator model
     joint_names_expr=["right_hip_pitch_joint", "right_knee_joint", "right_ankle_joint"],      
-    saturation_effort=100.0,
     effort_limit={
         "right_hip_pitch_joint": 20.0,
         "right_knee_joint": 20.0,
