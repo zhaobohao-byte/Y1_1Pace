@@ -72,7 +72,7 @@ def main():
 
     # Get optimization weights from config if available, otherwise use defaults
     pos_weight = getattr(env_cfg.sim2real.cmaes, 'pos_weight', 1.0)
-    vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', None)
+    vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', None)    # 'vel_weight', 0.1
 
     # Determine if velocity should be used: both data available AND vel_weight is set
     has_velocity_data = "dof_vel" in data
@@ -88,8 +88,6 @@ def main():
         elif vel_weight is None or vel_weight == 0.0:
             print(f"[INFO]: Velocity weight is {vel_weight}. Optimization will use position error only.")
         print(f"[INFO]: Optimization weights - Position: {pos_weight}")
-    vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', 0.1)  # 使用速度加权
-    #vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', 0.0)  # 不使用速度加权
 
     opt = CMAESOptimizer(
         bounds=bounds_params,
@@ -127,7 +125,7 @@ def main():
                 measured_vel = measured_dof_vel[counter, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
                 opt.tell(sim_joint_pos, measured_pos, sim_joint_vel, measured_vel)
             else:
-                opt.tell(sim_joint_pos, measured_pos)
+                opt.tell(sim_joint_pos, measured_pos, sim_joint_vel, None)
 
             # Set target position actions
             actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)

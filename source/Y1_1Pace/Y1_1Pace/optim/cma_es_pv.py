@@ -92,8 +92,11 @@ class CMAESOptimizer:
             vel_error = torch.sum(torch.square(sim_dof_vel - real_dof_vel), dim=1)
             self.vel_scores += vel_error
             self.scores += self.vel_weight * vel_error
-            
-        self.sim_dof_vel_buffer[:, self.scores_counter, :] = sim_dof_vel
+
+        # Always record velocity data if available (for logging/analysis)
+        if sim_dof_vel is not None:
+            self.sim_dof_vel_buffer[:, self.scores_counter, :] = sim_dof_vel
+
         self.sim_dof_pos_buffer[:, self.scores_counter, :] = sim_dof_pos
         self.scores_counter += 1
 
