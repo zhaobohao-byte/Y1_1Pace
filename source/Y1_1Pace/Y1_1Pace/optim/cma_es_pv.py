@@ -86,7 +86,9 @@ class CMAESOptimizer:
         pos_error = torch.sum(torch.square(sim_dof_pos - real_dof_pos - self.sim_params[:, self.bias_idx]), dim=1)
         self.pos_scores += pos_error
         self.scores += self.pos_weight * pos_error
-
+        # 正则化 damping 参数
+        # damping_penalty = torch.sum(torch.square(self.sim_params[:, self.damping_idx] - initial_damping), dim=1)
+        # self.scores += self.damping_weight * damping_penalty
         # Velocity error (if provided)
         if sim_dof_vel is not None and real_dof_vel is not None and self.vel_weight is not None:
             vel_error = torch.sum(torch.square(sim_dof_vel - real_dof_vel), dim=1)
