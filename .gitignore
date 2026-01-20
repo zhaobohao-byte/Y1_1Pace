@@ -1,1 +1,13 @@
- cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.env
+
+# git rm -r --cached . && git add . && git commit -m "Remove pycache and other files"
