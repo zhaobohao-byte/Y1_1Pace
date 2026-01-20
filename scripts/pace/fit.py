@@ -66,7 +66,7 @@ def main():
     measured_dof_pos = data["dof_pos"].to(env.unwrapped.device)
 
     # 初始位置使用实际测量值（update_simulator会自动加上优化中的bias参数）
-    initial_dof_pos = target_dof_pos[0, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
+    initial_dof_pos = measured_dof_pos[0, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
 
     time_steps = time_data.shape[0]
     sim_dt = env.unwrapped.sim.cfg.dt
