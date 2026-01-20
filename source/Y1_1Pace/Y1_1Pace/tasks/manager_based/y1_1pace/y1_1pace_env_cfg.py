@@ -135,7 +135,8 @@ class Atom3DOFPaceCfg(PaceCfg):
     def __post_init__(self):
         # set bounds for parameters
         self.bounds_params[:3, 0] = 1e-5        # armature 
-        self.bounds_params[:3, 1] = 0.8        
+        self.bounds_params[:3, 1] = 0.8    
+        self.bounds_params[3:6, 0] = 1e-3        # dof_damping 
         self.bounds_params[3:6, 1] = 10.0       # dof_damping
         self.bounds_params[6:9, 1] = 1.0      # friction
         self.bounds_params[9:12, 0] = -0.1     # bias
