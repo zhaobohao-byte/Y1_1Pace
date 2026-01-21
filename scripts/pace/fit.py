@@ -74,7 +74,7 @@ def main():
     # Get optimization weights from config if available, otherwise use defaults
     pos_weight = getattr(env_cfg.sim2real.cmaes, 'pos_weight', 1.0)
     vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', 0.02)    # 'vel_weight', 0.1
-    smoothness_weight = getattr(env_cfg.sim2real.cmaes, 'smoothness_weight', 0.1)  # Smoothness penalty weight (default 0.01)
+    smoothness_weight = getattr(env_cfg.sim2real.cmaes, 'smoothness_weight', 10.0)  # Smoothness penalty weight (default 0.01)
 
     # Determine if velocity should be used: both data available AND vel_weight is set
     has_velocity_data = "dof_vel" in data
