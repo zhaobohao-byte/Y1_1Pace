@@ -91,14 +91,22 @@ class CMAESOptimizer:
         pos_error = torch.sum(torch.square(sim_dof_pos - real_dof_pos - self.sim_params[:, self.bias_idx]), dim=1)
         self.pos_scores += pos_error
         self.scores += self.pos_weight * pos_error
-        # 正则化 damping 参数
-        # damping_penalty = torch.sum(torch.square(self.sim_params[:, self.damping_idx] - initial_damping), dim=1)
-        # self.scores += self.damping_weight * damping_penalty
+
         # Velocity error (if provided)
         if sim_dof_vel is not None and real_dof_vel is not None and self.vel_weight is not None:
             vel_error = torch.sum(torch.square(sim_dof_vel - real_dof_vel), dim=1)
             self.vel_scores += vel_error
             self.scores += self.vel_weight * vel_error
+
+        # Smoothness penalty: penalize velocity changes between timesteps (acceleration)
+        if sim_dof_vel is not None and self.smoothness_weight is not None and self.smoothness_weight > 0:
+            if self.prev_sim_dof_vel is not None:
+                # 计算相邻时刻速度差的平方和 (加速度的平方)
+                vel_change = torch.sum(torch.square(sim_dof_vel - self.prev_sim_dof_vel), dim=1)
+                self.smoothness_scores += vel_change
+                self.scores += self.smoothness_weight * vel_change
+            # 更新上一时刻的速度
+            self.prev_sim_dof_vel = sim_dof_vel.clone()
 
         # Always record velocity data if available (for logging/analysis)
         if sim_dof_vel is not None:
