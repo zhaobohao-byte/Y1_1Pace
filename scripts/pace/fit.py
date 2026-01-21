@@ -74,6 +74,7 @@ def main():
     # Get optimization weights from config if available, otherwise use defaults
     pos_weight = getattr(env_cfg.sim2real.cmaes, 'pos_weight', 1.0)
     vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', 0.02)    # 'vel_weight', 0.1
+    smoothness_weight = getattr(env_cfg.sim2real.cmaes, 'smoothness_weight', 0.0)  # Smoothness penalty weight
 
     # Determine if velocity should be used: both data available AND vel_weight is set
     has_velocity_data = "dof_vel" in data
@@ -81,14 +82,14 @@ def main():
 
     if use_velocity:
         measured_dof_vel = data["dof_vel"].to(env.unwrapped.device)
-        print(f"[INFO]: Using velocity in optimization. Position weight: {pos_weight}, Velocity weight: {vel_weight}")
+        print(f"[INFO]: Using velocity in optimization. Position weight: {pos_weight}, Velocity weight: {vel_weight}, Smoothness weight: {smoothness_weight}")
     else:
         measured_dof_vel = None
         if not has_velocity_data:
             print("[INFO]: No velocity data found in file. Optimization will use position error only.")
         elif vel_weight is None or vel_weight == 0.0:
             print(f"[INFO]: Velocity weight is {vel_weight}. Optimization will use position error only.")
-        print(f"[INFO]: Optimization weights - Position: {pos_weight}")
+        print(f"[INFO]: Optimization weights - Position: {pos_weight}, Smoothness: {smoothness_weight}")
 
     opt = CMAESOptimizer(
         bounds=bounds_params,
@@ -104,6 +105,7 @@ def main():
         save_optimization_process=env_cfg.sim2real.cmaes.save_optimization_process,
         pos_weight=pos_weight,
         vel_weight=vel_weight if use_velocity else None,
+        smoothness_weight=smoothness_weight,
     )
 
     env.reset()

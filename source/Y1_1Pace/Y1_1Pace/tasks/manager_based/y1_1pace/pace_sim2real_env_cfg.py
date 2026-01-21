@@ -101,6 +101,7 @@ class CMAESOptimizerCfg:
     sigma: float = 0.5 
     save_interval: int = 10
     save_optimization_process: bool = False  # consume more disk space if True, saves optimization process after finishing
+    smoothness_weight: float = 0.01  # Weight for velocity smoothness penalty (penalize acceleration to reduce oscillation)
 
 
 @configclass
