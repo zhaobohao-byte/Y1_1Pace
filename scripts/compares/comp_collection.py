@@ -14,9 +14,9 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser(description="Pace agent for Isaac Lab environments.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Pace-Y1-1-v0", help="Name of the task.")
-parser.add_argument("--input_data", type=str, default="/home/bohao/LuvRobot/Y1_1Pace/data/Atom3motors/raw_pt/260117_steps_10s_3motors_aligned.pt",
+parser.add_argument("--input_data", type=str, default="/home/bohao/LuvRobot/Y1_1Pace/data/RS_motors/raw_pt/RS06_chrip_spd10_aligned.pt",
                     help="Input trajectory data file path (absolute or relative to data/). If not provided, interactive mode will start.")
-parser.add_argument("--params_file", type=str, default="/home/bohao/LuvRobot/Y1_1Pace/logs/pace/Atom3DOF_sim/26_01_19_12-17-39/mean_150.pt",
+parser.add_argument("--params_file", type=str, default="/home/bohao/LuvRobot/Y1_1Pace/logs/pace/Atom3DOF_sim/26_01_23_04-50-07/mean_018.pt",
                     help="Path to optimized parameters file (e.g., mean_299.pt). If not provided, will use default parameters.")
 parser.add_argument("--output_suffix", type=str, default="sim_output_pv_150",
                     help="Output file suffix (will create <input_name>_<suffix>.pt)")
@@ -112,20 +112,16 @@ def main():
     mean_params = torch.load(params_path, map_location=env.unwrapped.device)
 
     # Parse parameters according to PACE format:
-    # [armature (n), damping (n), friction (n), bias (n), delay (1)]
+    # [armature (n), damping (n), friction (n)]
     n_joints = len(joint_ids)
     armature = mean_params[:n_joints].unsqueeze(0)
     damping = mean_params[n_joints:2 * n_joints].unsqueeze(0)
     friction = mean_params[2 * n_joints:3 * n_joints].unsqueeze(0)
-    bias = mean_params[3 * n_joints:4 * n_joints].unsqueeze(0)
-    time_lag = mean_params[-1:].unsqueeze(0).to(torch.int)
 
     print("[INFO]: Loaded parameters:")
     print(f"  Armature: {armature.squeeze().tolist()}")
     print(f"  Damping: {damping.squeeze().tolist()}")
     print(f"  Friction: {friction.squeeze().tolist()}")
-    print(f"  Bias: {bias.squeeze().tolist()}")
-    print(f"  Time lag: {time_lag.item()}")    
     env.reset()
 
     articulation.write_joint_armature_to_sim(armature, joint_ids=joint_ids, env_ids=torch.arange(len(armature)))
@@ -136,14 +132,6 @@ def main():
     articulation.data.default_joint_friction_coeff[:, joint_ids] = friction
     drive_types = articulation.actuators.keys()
     for drive_type in drive_types:
-        drive_indices = articulation.actuators[drive_type].joint_indices
-        if isinstance(drive_indices, slice):
-            all_idx = torch.arange(joint_ids.shape[0], device=joint_ids.device)
-            drive_indices = all_idx[drive_indices]
-        comparison_matrix = (joint_ids.unsqueeze(1) == drive_indices.unsqueeze(0))
-        drive_joint_idx = torch.argmax(comparison_matrix.int(), dim=0)
-        articulation.actuators[drive_type].update_time_lags(time_lag)
-        articulation.actuators[drive_type].update_encoder_bias(bias[:, drive_joint_idx])
         articulation.actuators[drive_type].reset(torch.arange(env.unwrapped.num_envs))
 
     data_dir = project_root() / "data" 
@@ -232,13 +220,8 @@ def main():
     print(f"[INFO]: 初始位置（实际测量值）: {init_pos.cpu().numpy()}")
     if has_velocity:
         print(f"[INFO]: 初始速度（实际测量值）: {init_vel.cpu().numpy()}")
-    
-    # 设置初始位置时需要加上编码器偏置（因为仿真器内部会减去偏置）
-    # 实际位置 = 仿真位置 - bias，所以仿真位置 = 实际位置 + bias
-    init_pos_with_bias = init_pos + bias.squeeze()
-    print(f"[INFO]: 初始位置（加上偏置后）: {init_pos_with_bias.cpu().numpy()}")
-    
-    articulation.write_joint_position_to_sim(init_pos_with_bias.unsqueeze(0), joint_ids=joint_ids)
+
+    articulation.write_joint_position_to_sim(init_pos.unsqueeze(0), joint_ids=joint_ids)
     articulation.write_joint_velocity_to_sim(init_vel.unsqueeze(0), joint_ids=joint_ids)
     articulation.write_data_to_sim()
 
@@ -252,8 +235,8 @@ def main():
         with torch.inference_mode():
             robot = env.unwrapped.scene.articulations["robot"]
             
-            # 记录当前状态（处理多关节bias）
-            dof_pos_buffer[counter] = robot.data.joint_pos[0, joint_ids] - bias[0, :len(joint_ids)]
+            # 记录当前状态
+            dof_pos_buffer[counter] = robot.data.joint_pos[0, joint_ids]
             dof_vel_buffer[counter] = robot.data.joint_vel[0, joint_ids]
             
             # 设置目标动作
