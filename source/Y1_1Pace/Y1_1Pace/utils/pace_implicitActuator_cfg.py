@@ -3,7 +3,6 @@
 # Licensed under the Apache License 2.0
 
 from __future__ import annotations
-import torch
 
 from isaaclab.utils import configclass
 
@@ -18,5 +17,3 @@ class PaceImplicitActuatorCfg(ImplicitActuatorCfg):
     This class extends the base ImplicitActuatorCfg with Pace-specific parameters.
     """
     class_type: type = pace_implicitActuator.PaceImplicitActuator
-    encoder_bias: list[float] | float | None = 0.0
-    max_delay: torch.int | None = 0

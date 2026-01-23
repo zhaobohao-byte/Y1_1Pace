@@ -84,9 +84,6 @@ print(f"Best parameter set: {mean}")
 print(f"Armature params: {mean[:len(joint_order)]}")
 print(f"Viscous friction params: {mean[len(joint_order):2 * len(joint_order)]}")
 print(f"Static friction params: {mean[2 * len(joint_order):3 * len(joint_order)]}")
-print(f"Encoder bias params: {mean[3 * len(joint_order):4 * len(joint_order)]}")
-print(f"Delay param: {mean[-1].item()}")
-encoder_bias = mean[3 * len(joint_order):4 * len(joint_order)]  # extract encoder bias
 
 if plot_score:
     try:
@@ -112,7 +109,7 @@ if plot_score:
 if plot_trajectory:
     for i in range(len(joint_order)):
         plt.figure(figsize=(8, 4.5))
-        plt.plot(time, trajectories[:, i].cpu().numpy() - encoder_bias[i].item(), c="tab:orange", label="Sim", linewidth=2)  # in encoder frame
+        plt.plot(time, trajectories[:, i].cpu().numpy(), c="tab:orange", label="Sim", linewidth=2)
         plt.plot(time, real_trajectories[:, i].cpu().numpy(), label="Real", c="tab:green", linestyle="--", linewidth=2)
         plt.plot(time, target_trajectories[:, i].cpu().numpy(), c="grey", label="Target", linestyle="--", alpha=0.5)
         plt.title(f"Joint {joint_order[i]}")  # Use joint names from config
