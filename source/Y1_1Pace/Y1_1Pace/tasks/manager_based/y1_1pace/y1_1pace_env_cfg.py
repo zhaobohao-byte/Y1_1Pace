@@ -30,7 +30,7 @@ RS06_PACE_ACTUATOR_CFG = PaceImplicitActuatorCfg(         # use implicit actuato
 class RS06PaceCfg(PaceCfg):
     """Pace configuration for Atom3DOF robot."""
     robot_name: str = "Atom3DOF_sim"
-    data_dir: str = "Atom3motors/raw_pt/260117_chrip_20s_3motors_aligned.pt"  # located in Y1_1Pace/data/Atom3DOF_sim/chirp_data.pt
+    data_dir: str = "RS_motors/raw_pt/RS06_chrip_spd10_aligned.pt"  # located in Y1_1Pace/data/Atom3DOF_sim/chirp_data.pt
     bounds_params: torch.Tensor = torch.zeros((3, 2))  # 1 + 1 + 1 = 3 parameters to optimize
     joint_order: list[str] = [
         "waist_yaw_joint",

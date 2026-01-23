@@ -14,8 +14,8 @@ JOINT_ORDER = ['left_hip_roll_joint']  # 单关节
 
 # 使用脚本所在位置作为基准，这样无论从哪里运行都能找到文件
 SCRIPT_DIR = Path(__file__).parent
-RAW_CSV_DIR = SCRIPT_DIR / "../../data/Atom3motors/raw_csv"
-OUTPUT_DIR = SCRIPT_DIR / "../../data/Atom3motors/raw_pt"
+RAW_CSV_DIR = SCRIPT_DIR / "../../data/RS_motors/raw_csv"
+OUTPUT_DIR = SCRIPT_DIR / "../../data/RS_motors/raw_pt"
 
 
 def convert_csv_to_pt(csv_path):
