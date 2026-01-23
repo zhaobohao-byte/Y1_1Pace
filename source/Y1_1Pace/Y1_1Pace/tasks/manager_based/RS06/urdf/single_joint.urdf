@@ -52,7 +52,7 @@
     <child link="waist_yaw_Link" />
     <origin xyz="0.0014 0.0000 0.1350" rpy="0.0000 0.0000 0.0000" />
     <axis xyz="0.0000 0.0000 1.0000" />
-    <limit lower="-2.5307274153917776" upper="2.5307274153917776" effort="36.0" velocity="50" />
+    <limit lower="-2.5307274153917776" upper="2.5307274153917776" effort="36.0" velocity="10" />
     <hardware>
       <motorType>None</motorType>
       <motorDirection>1</motorDirection>

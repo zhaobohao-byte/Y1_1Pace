@@ -8,7 +8,9 @@ import argparse
 
 
 # 配置 - 根据需要修改这部分就好
-JOINT_ORDER = ['right_hip_pitch_joint', 'right_knee_joint', 'right_ankle_joint']
+# 示例关节配置：
+# JOINT_ORDER = ['right_hip_pitch_joint', 'right_knee_joint', 'right_ankle_joint']  # 三关节
+JOINT_ORDER = ['left_hip_roll_joint']  # 单关节
 
 # 使用脚本所在位置作为基准，这样无论从哪里运行都能找到文件
 SCRIPT_DIR = Path(__file__).parent
@@ -26,10 +28,11 @@ def convert_csv_to_pt(csv_path):
         time = torch.tensor(df['time'].values, dtype=torch.float32)
         n = len(df)
 
-        # 创建三个张量，按指定关节顺序排列
-        des_pos = torch.zeros((n, len(JOINT_ORDER)), dtype=torch.float32)
-        act_pos = torch.zeros((n, len(JOINT_ORDER)), dtype=torch.float32)
-        vel = torch.zeros((n, len(JOINT_ORDER)), dtype=torch.float32)
+        # 创建张量，按指定关节顺序排列
+        n_joints = len(JOINT_ORDER)
+        des_pos = torch.zeros((n, n_joints), dtype=torch.float32)
+        act_pos = torch.zeros((n, n_joints), dtype=torch.float32)
+        vel = torch.zeros((n, n_joints), dtype=torch.float32)
 
         for i, joint in enumerate(JOINT_ORDER):
             if f'des_dof_pos_{joint}' in df.columns:
@@ -43,12 +46,14 @@ def convert_csv_to_pt(csv_path):
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         save_path = OUTPUT_DIR / f"{csv_path.stem}.pt"
 
-        torch.save({
-            'time': time,
-            'des_dof_pos': des_pos,
-            'dof_pos': act_pos,
-            'dof_vel': vel,
-        }, save_path)
+        # 创建输出数据字典
+        data_dict = {'time': time, 'des_dof_pos': des_pos, 'dof_pos': act_pos}
+
+        # 只有当速度数据有效时才保存
+        if vel.norm() > 0:  # 检查是否有速度数据
+            data_dict['dof_vel'] = vel
+
+        torch.save(data_dict, save_path)
 
         print(f"  → 已保存: {save_path.name}  ({len(time)} 帧)")
         return save_path
@@ -63,9 +68,18 @@ def plot_trajectory(pt_path):
     data = torch.load(pt_path)
     t = data['time'].numpy()
 
-    # 创建3行2列的子图
-    fig, axes = plt.subplots(3, 2, figsize=(14, 9))
+    # 自动根据关节数量调整布局
+    n_joints = len(JOINT_ORDER)
+    # 2列（位置和速度），关节数量行
+    fig, axes = plt.subplots(n_joints, 2, figsize=(14, 4.5 * n_joints))
     fig.suptitle(f'Joint Tracking - {pt_path.stem}', fontsize=14, fontweight='bold')
+
+    # 确保axes是二维数组，即使只有一个关节
+    if n_joints == 1:
+        axes = axes.reshape(1, -1)
+
+    # 检查是否有速度数据
+    has_velocity = 'dof_vel' in data and data['dof_vel'].norm() > 0
 
     for i, name in enumerate(JOINT_ORDER):
         # 左列：位置对比
@@ -82,20 +96,26 @@ def plot_trajectory(pt_path):
         ax_pos.grid(True, alpha=0.3)
         ax_pos.legend(loc='best', fontsize=8)
 
-        # 右列：速度
+        # 右列：速度（如果有数据）
         ax_vel = axes[i, 1]
-        vel = data['dof_vel'][:, i].numpy()
-        ax_vel.plot(t, vel, 'g-', lw=1.5, label='Velocity')
+        if has_velocity:
+            vel = data['dof_vel'][:, i].numpy()
+            ax_vel.plot(t, vel, 'g-', lw=1.5, label='Velocity')
 
-        # 计算速度统计
-        vel_mean = vel.mean()
-        vel_std = vel.std()
+            # 计算速度统计
+            vel_mean = vel.mean()
+            vel_std = vel.std()
 
-        ax_vel.set_ylabel('Velocity [rad/s]')
-        ax_vel.set_title(f'{name} - Velocity (μ={vel_mean:.3f}, σ={vel_std:.3f})', fontsize=10)
-        ax_vel.grid(True, alpha=0.3)
-        ax_vel.axhline(y=0, color='k', linestyle='--', lw=0.8, alpha=0.5)
-        ax_vel.legend(loc='best', fontsize=8)
+            ax_vel.set_ylabel('Velocity [rad/s]')
+            ax_vel.set_title(f'{name} - Velocity (μ={vel_mean:.3f}, σ={vel_std:.3f})', fontsize=10)
+            ax_vel.axhline(y=0, color='k', linestyle='--', lw=0.8, alpha=0.5)
+            ax_vel.legend(loc='best', fontsize=8)
+        else:
+            ax_vel.text(0.5, 0.5, 'No Velocity Data',
+                        transform=ax_vel.transAxes, ha='center', va='center',
+                        fontsize=12, color='gray')
+            ax_vel.set_title(f'{name} - Velocity (No Data)', fontsize=10)
+            ax_vel.grid(True, alpha=0.3)
 
     # 最后一行设置x轴标签
     axes[-1, 0].set_xlabel('Time [s]')

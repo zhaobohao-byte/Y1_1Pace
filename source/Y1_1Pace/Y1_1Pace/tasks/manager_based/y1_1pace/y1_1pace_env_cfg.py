@@ -10,156 +10,19 @@ import os
 
 
 ################################################################################
-#  Y1_1_PACE_ACTUATOR_CFG is the actuator configuration for the Y1_1 robot in the Pace Sim2Real environment.
-################################################################################
-Y1_1_PACE_ACTUATOR_CFG = PaceDCMotorCfg(
-    joint_names_expr=["l_.*_joint"],      
-    saturation_effort=100.0,
-    effort_limit={
-        "l_hip_pitch_joint": 60.0,
-        "l_hip_roll_joint": 36.0,
-        "l_hip_yaw_joint": 36.0,
-        "l_knee_pitch_joint": 60.0,
-        "l_ankle_pitch_joint": 36.0,
-        "l_ankle_roll_joint": 14.0,
-    },
-    velocity_limit={
-        "l_hip_pitch_joint": 18.0,
-        "l_hip_roll_joint": 10.0,
-        "l_hip_yaw_joint": 10.0,
-        "l_knee_pitch_joint": 18.0,
-        "l_ankle_pitch_joint": 10.0,
-        "l_ankle_roll_joint": 25.0,
-    },
-    armature={
-        "l_hip_pitch_joint": 0.02,      # RS-03
-        "l_hip_roll_joint": 0.012,      # RS-06
-        "l_hip_yaw_joint": 0.012,       # RS-06
-        "l_knee_pitch_joint": 0.02,     # RS-03
-        "l_ankle_pitch_joint": 0.012,   # RS-06
-        "l_ankle_roll_joint": 0.001,    # RS-00
-    },
-
-    stiffness={
-        "l_hip_pitch_joint": 78.9568352,
-        "l_hip_roll_joint": 47.3741,
-        "l_hip_yaw_joint": 47.3741,
-        "l_knee_pitch_joint": 78.9568352,    
-        "l_ankle_pitch_joint": 47.3741,
-        "l_ankle_roll_joint": 3.94784176,
-    },
-    damping={
-        "l_hip_pitch_joint": 5.0265482456,
-        "l_hip_roll_joint": 3.01592894736,
-        "l_hip_yaw_joint": 3.01592894736,
-        "l_knee_pitch_joint": 5.0265482456,
-        "l_ankle_pitch_joint": 3.01592894736,
-        "l_ankle_roll_joint": 0.25132741228,
-    },
-    encoder_bias=[0.0] * 6,  
-    max_delay=10,  
-)
-
-@configclass
-class Y1_1PaceCfg(PaceCfg):
-    """Pace configuration for Y1_1 robot."""
-    robot_name: str = "Y1_1_sim"
-    data_dir: str = "Y1_1_sim/chrip_data_mujoco_noise.pt"  # located in Y1_1Pace/data/Y1_1_sim/chirp_data.pt
-    bounds_params: torch.Tensor = torch.zeros((18, 2))  # 6 + 6 + 6 = 18 parameters to optimize
-    joint_order: list[str] = [
-        "l_hip_pitch_joint",
-        "l_hip_roll_joint",
-        "l_hip_yaw_joint",
-        "l_knee_pitch_joint",
-        "l_ankle_pitch_joint",
-        "l_ankle_roll_joint",
-    ]
-
-    def __post_init__(self):
-        # set bounds for parameters
-        self.bounds_params[:6, 0] = 1e-5        # armature
-        self.bounds_params[:6, 1] = 1
-        self.bounds_params[6:12, 1] = 10.0       # dof_damping
-        self.bounds_params[12:18, 1] = 2.0      # friction
-
-################################################################################
-#  Atom3DOF_PACE_ACTUATOR_CFG is the actuator configuration for the Atom3DOF robot in the Pace Sim2Real environment.
-################################################################################
-# Atom3DOF_PACE_ACTUATOR_CFG = PaceDCMotorCfg(               # use DC motor model
-Atom3DOF_PACE_ACTUATOR_CFG = PaceImplicitActuatorCfg(         # use implicit actuator model
-    joint_names_expr=["right_hip_pitch_joint", "right_knee_joint", "right_ankle_joint"],
-    effort_limit={
-        "right_hip_pitch_joint": 20.0,
-        "right_knee_joint": 20.0,
-        "right_ankle_joint": 12.0,
-    },
-    velocity_limit={
-        "right_hip_pitch_joint": 22.0,
-        "right_knee_joint": 22.0,
-        "right_ankle_joint": 25.13,
-    },
-    armature={
-        "right_hip_pitch_joint": 0.00414,
-        "right_knee_joint": 0.00754515,
-        "right_ankle_joint": 0.00216,
-    },
-    stiffness={
-        "right_hip_pitch_joint": 16.3440,
-        "right_knee_joint": 29.7870,
-        "right_ankle_joint": 8.5270,
-    },
-    damping={
-        "right_hip_pitch_joint": 1.0400,
-        "right_knee_joint": 1.8960,
-        "right_ankle_joint": 0.5430,
-    },
-)
-
-@configclass
-class Atom3DOFPaceCfg(PaceCfg):
-    """Pace configuration for Atom3DOF robot."""
-    robot_name: str = "Atom3DOF_sim"
-    data_dir: str = "Atom3motors/raw_pt/260117_chrip_20s_3motors_aligned.pt"  # located in Y1_1Pace/data/Atom3DOF_sim/chirp_data.pt
-    bounds_params: torch.Tensor = torch.zeros((9, 2))  # 3 + 3 + 3 = 9 parameters to optimize
-    joint_order: list[str] = [
-        "right_hip_pitch_joint",
-        "right_knee_joint",
-        "right_ankle_joint",
-    ]
-
-    def __post_init__(self):
-        # set bounds for parameters
-        self.bounds_params[:3, 0] = 1e-5        # armature
-        self.bounds_params[:3, 1] = 0.8
-        self.bounds_params[3:6, 0] = 1e-3        # dof_damping
-        self.bounds_params[3:6, 1] = 10.0       # dof_damping
-        self.bounds_params[6:9, 1] = 1.0      # friction
-
-################################################################################
-
-################################################################################
 #  RS06
 ################################################################################
 # RS06_PACE_ACTUATOR_CFG = PaceDCMotorCfg(               # use DC motor model
 RS06_PACE_ACTUATOR_CFG = PaceImplicitActuatorCfg(         # use implicit actuator model
-    joint_names_expr=["l_.*_joint"],      
+    joint_names_expr=["waist_yaw_joint"],      
     armature={
-        "l_hip_roll_joint": 0.012,
-        "l_hip_yaw_joint": 0.012,
-        "l_ankle_pitch_joint": 0.012,
-        "l_ankle_roll_joint": 0.001,
+        "waist_yaw_joint": 0.012,
     },
     stiffness={
-        "l_hip_roll_joint": 47.3741,
-        "l_hip_yaw_joint": 47.3741,
-        "l_ankle_pitch_joint": 47.3741,
-        "l_ankle_roll_joint": 3.94784176,
+        "waist_yaw_joint": 47.3740,
     },
     damping={
-        "l_hip_roll_joint": 3.01592894736,
-        "l_hip_yaw_joint": 3.01592894736,
-        "l_ankle_pitch_joint": 3.01592894736,
-        "l_ankle_roll_joint": 0.25132741228,
+        "waist_yaw_joint": 3.0160,
     },
 )
 
@@ -170,18 +33,17 @@ class RS06PaceCfg(PaceCfg):
     data_dir: str = "Atom3motors/raw_pt/260117_chrip_20s_3motors_aligned.pt"  # located in Y1_1Pace/data/Atom3DOF_sim/chirp_data.pt
     bounds_params: torch.Tensor = torch.zeros((3, 2))  # 1 + 1 + 1 = 3 parameters to optimize
     joint_order: list[str] = [
-        "right_hip_pitch_joint",
-        "right_knee_joint",
-        "right_ankle_joint",
+        "waist_yaw_joint",
     ]
 
     def __post_init__(self):
         # set bounds for parameters
-        self.bounds_params[:3, 0] = 1e-5        # armature
-        self.bounds_params[:3, 1] = 0.8
-        self.bounds_params[3:6, 0] = 1e-3        # dof_damping
-        self.bounds_params[3:6, 1] = 10.0       # dof_damping
-        self.bounds_params[6:9, 1] = 1.0      # friction
+        # 参数顺序: [armature, damping, friction]
+        self.bounds_params[0, 0] = 1e-5        # armature 下界
+        self.bounds_params[0, 1] = 0.8         # armature 上界
+        self.bounds_params[1, 1] = 10.0        # damping 上界
+        self.bounds_params[2, 0] = 0.0         # friction 下界
+        self.bounds_params[2, 1] = 1.0         # friction 上界
 
 ################################################################################
 @configclass
@@ -199,12 +61,9 @@ class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
                 "Y1_1Pace",
                 "tasks",
                 "manager_based",
-                # "Y1_1_robot",
-                # "urdf",
-                # "Y1_1.urdf"
-                "Atom3DOF",
+                "RS06",
                 "urdf",
-                "atom_v3_smallfeet.urdf"
+                "single_joint.urdf"
             ), 
             fix_base=True,
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(            
@@ -223,8 +82,7 @@ class Y1_1PaceSceneCfg(PaceSim2realSceneCfg):
             rot=(1.0, 0.0, 0.0, 0.0),                 
         ),
         actuators={
-            # "leg_motors": Y1_1_PACE_ACTUATOR_CFG
-            "leg_motors": Atom3DOF_PACE_ACTUATOR_CFG
+            "waist_yaw_joint": RS06_PACE_ACTUATOR_CFG
         },
     )
 
@@ -235,7 +93,7 @@ class Y1_1PaceEnvCfg(PaceSim2realEnvCfg):
 
     scene: Y1_1PaceSceneCfg = Y1_1PaceSceneCfg()
     # sim2real: PaceCfg = Y1_1PaceCfg()
-    sim2real: PaceCfg = Atom3DOFPaceCfg()
+    sim2real: PaceCfg = RS06PaceCfg()
 
     def __post_init__(self):
         # post init of parent
