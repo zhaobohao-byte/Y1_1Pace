@@ -12,7 +12,7 @@ import os
 
 
 class CMAESOptimizer:
-    def __init__(self, bounds, population_size, log_dir, joint_order, max_iteration, data, device, epsilon=None, sigma=0.5, save_interval=10, save_optimization_process=False, pos_weight=1.0, vel_weight=0.0, smoothness_weight=0.0):
+    def __init__(self, bounds, population_size, log_dir, joint_order, max_iteration, data, device, epsilon=None, sigma=0.5, save_interval=10, save_optimization_process=False, pos_weight=1.0, vel_weight=0.0):
 
         self.joint_order = joint_order
         self.max_iteration = max_iteration
@@ -22,7 +22,6 @@ class CMAESOptimizer:
         self.save_optimization_process = save_optimization_process
         self.pos_weight = pos_weight  # Weight for position error
         self.vel_weight = vel_weight  # Weight for velocity error
-        self.smoothness_weight = smoothness_weight  # Weight for velocity smoothness (penalize acceleration)
         self._timer_start = datetime.now()  # timer for logging purposes
 
         # create log_dir in YY_MM_DD_hh-mm-ss format
@@ -38,8 +37,7 @@ class CMAESOptimizer:
             "des_dof_pos": data["des_dof_pos"],
             "time": data["time"],
             "pos_weight": pos_weight,
-            "vel_weight": vel_weight,
-            "smoothness_weight": smoothness_weight
+            "vel_weight": vel_weight
         }
         # Add velocity data if available
         if "dof_vel" in data and self.vel_weight is not None:
@@ -64,9 +62,6 @@ class CMAESOptimizer:
             self.vel_scores = torch.zeros(population_size, device=device)  # Track velocity error separately
         # 始终记录velocity数据
         self.sim_dof_vel_buffer = torch.zeros((population_size, data["dof_pos"].shape[0], len(joint_order)), device=device)
-        if self.smoothness_weight is not None and self.smoothness_weight > 0:
-            self.smoothness_scores = torch.zeros(population_size, device=device)  # Track smoothness penalty
-            self.prev_sim_dof_vel = None  # Store previous timestep velocity
 
         self.params = torch.zeros((population_size, bounds.shape[0]), device=device)
         self.sim_params = torch.zeros_like(self.params)
@@ -87,8 +82,8 @@ class CMAESOptimizer:
         return self.optimizer.ask()
 
     def tell(self, sim_dof_pos, real_dof_pos, sim_dof_vel=None, real_dof_vel=None):
-        # Position error (with bias compensation)
-        pos_error = torch.sum(torch.square(sim_dof_pos - real_dof_pos - self.sim_params[:, self.bias_idx]), dim=1)
+        # Position error
+        pos_error = torch.sum(torch.square(sim_dof_pos - real_dof_pos), dim=1)
         self.pos_scores += pos_error
         self.scores += self.pos_weight * pos_error
 
@@ -97,16 +92,6 @@ class CMAESOptimizer:
             vel_error = torch.sum(torch.square(sim_dof_vel - real_dof_vel), dim=1)
             self.vel_scores += vel_error
             self.scores += self.vel_weight * vel_error
-
-        # Smoothness penalty: penalize velocity changes between timesteps (acceleration)
-        if sim_dof_vel is not None and self.smoothness_weight is not None and self.smoothness_weight > 0:
-            if self.prev_sim_dof_vel is not None:
-                # 计算相邻时刻速度差的平方和 (加速度的平方)
-                vel_change = torch.sum(torch.square(sim_dof_vel - self.prev_sim_dof_vel), dim=1)
-                self.smoothness_scores += vel_change
-                self.scores += self.smoothness_weight * vel_change
-            # 更新上一时刻的速度
-            self.prev_sim_dof_vel = sim_dof_vel.clone()
 
         # Always record velocity data if available (for logging/analysis)
         if sim_dof_vel is not None:
@@ -120,8 +105,6 @@ class CMAESOptimizer:
         if self.vel_weight is not None and self.sim_dof_vel_buffer is not None:
             self.vel_scores /= self.scores_counter
         self.pos_scores /= self.scores_counter
-        if self.smoothness_weight is not None and self.smoothness_weight > 0:
-            self.smoothness_scores /= self.scores_counter
         self.scores_buffer[self.iteration_counter, :] = self.scores
         if self.save_optimization_process:
             self.sim_params_buffer[self.iteration_counter, :, :] = self.sim_params
@@ -137,9 +120,6 @@ class CMAESOptimizer:
 
         self.scores = torch.zeros_like(self.scores)
         self.scores_counter = 0
-        if self.smoothness_weight is not None and self.smoothness_weight > 0:
-            self.smoothness_scores = torch.zeros_like(self.smoothness_scores)
-            self.prev_sim_dof_vel = None  # Reset for next iteration
         self.iteration_counter += 1
         print("CMA-ES optimizer iteration: ", self.iteration_counter)
 
@@ -190,8 +170,6 @@ class CMAESOptimizer:
         print(f"Position error: {self.pos_scores[min_index].item():.6f}")
         if self.vel_weight is not None and self.sim_dof_vel_buffer is not None:
             print(f"Velocity error: {self.vel_scores[min_index].item():.6f}")
-        if self.smoothness_weight is not None and self.smoothness_weight > 0:
-            print(f"Smoothness penalty: {self.smoothness_scores[min_index].item():.6f}")
         print("-" * 80)
         print("Best parameters:")
         print(f"  Armature: {self.sim_params[min_index, self.armature_idx].tolist()}")
@@ -240,9 +218,6 @@ class CMAESOptimizer:
 
         if self.vel_weight is not None and self.sim_dof_vel_buffer is not None:
             self.writer.add_scalar("0_Episode/vel_error", self.vel_scores[min_score_index].item(), self.iteration_counter)
-
-        if self.smoothness_weight is not None and self.smoothness_weight > 0:
-            self.writer.add_scalar("0_Episode/smoothness_penalty", self.smoothness_scores[min_score_index].item(), self.iteration_counter)
 
     def save_checkpoint(self, mean, iteration, finished=False):
         min_index = torch.argmin(self.scores_buffer[iteration, :])

@@ -8,8 +8,8 @@ import argparse
 
 
 # 配置 - 根据需要修改这部分就好
-JOINT_ORDER = ['right_hip_pitch_joint', 'right_knee_joint', 'right_ankle_joint']
-
+# JOINT_ORDER = ['right_hip_pitch_joint', 'right_knee_joint', 'right_ankle_joint']
+JOINT_ORDER = ['left_hip_pitch_joint', 'left_hip_roll_joint', 'left_hip_yaw_joint', 'left_knee_joint', 'left_ankle_pitch_joint', 'left_ankle_roll_joint']
 # 使用脚本所在位置作为基准，这样无论从哪里运行都能找到文件
 SCRIPT_DIR = Path(__file__).parent
 RAW_CSV_DIR = SCRIPT_DIR / "../../data/Atom3motors/raw_csv"
@@ -59,17 +59,23 @@ def convert_csv_to_pt(csv_path):
 
 
 def plot_trajectory(pt_path):
-    """画轨迹图：每个关节一行，左边位置对比，右边速度"""
+    """画轨迹图：每个关节单独显示一个图，左边位置对比，右边速度"""
     data = torch.load(pt_path)
     t = data['time'].numpy()
 
-    # 创建3行2列的子图
-    fig, axes = plt.subplots(3, 2, figsize=(14, 9))
-    fig.suptitle(f'Joint Tracking - {pt_path.stem}', fontsize=14, fontweight='bold')
+    # 从数据中获取关节数量
+    n_joints = data['dof_pos'].shape[1]
 
-    for i, name in enumerate(JOINT_ORDER):
-        # 左列：位置对比
-        ax_pos = axes[i, 0]
+    # 检查是否有速度数据
+    has_velocity = 'dof_vel' in data and data['dof_vel'].norm() > 0
+
+    # 为每个关节单独创建一个图
+    for i, name in enumerate(JOINT_ORDER[:n_joints]):
+        # 创建1行2列的子图（位置和速度）
+        fig, (ax_pos, ax_vel) = plt.subplots(1, 2, figsize=(14, 4.5))
+        fig.suptitle(f'{name} - {pt_path.stem}', fontsize=14, fontweight='bold')
+
+        # 左图：位置对比
         ax_pos.plot(t, data['des_dof_pos'][:, i], 'b--', label='Desired', lw=2, alpha=0.8)
         ax_pos.plot(t, data['dof_pos'][:, i], 'r-', label='Actual', lw=1.5)
 
@@ -77,32 +83,36 @@ def plot_trajectory(pt_path):
         error = (data['dof_pos'][:, i] - data['des_dof_pos'][:, i]).numpy()
         rmse = (error**2).mean()**0.5
 
+        ax_pos.set_xlabel('Time [s]')
         ax_pos.set_ylabel('Position [rad]')
-        ax_pos.set_title(f'{name} - Position (RMSE: {rmse:.4f})', fontsize=10)
+        ax_pos.set_title(f'Position (RMSE: {rmse:.4f})', fontsize=12)
         ax_pos.grid(True, alpha=0.3)
-        ax_pos.legend(loc='best', fontsize=8)
+        ax_pos.legend(loc='best', fontsize=10)
 
-        # 右列：速度
-        ax_vel = axes[i, 1]
-        vel = data['dof_vel'][:, i].numpy()
-        ax_vel.plot(t, vel, 'g-', lw=1.5, label='Velocity')
+        # 右图：速度（如果有数据）
+        if has_velocity:
+            vel = data['dof_vel'][:, i].numpy()
+            ax_vel.plot(t, vel, 'g-', lw=1.5, label='Velocity')
 
-        # 计算速度统计
-        vel_mean = vel.mean()
-        vel_std = vel.std()
+            # 计算速度统计
+            vel_mean = vel.mean()
+            vel_std = vel.std()
 
-        ax_vel.set_ylabel('Velocity [rad/s]')
-        ax_vel.set_title(f'{name} - Velocity (μ={vel_mean:.3f}, σ={vel_std:.3f})', fontsize=10)
+            ax_vel.set_xlabel('Time [s]')
+            ax_vel.set_ylabel('Velocity [rad/s]')
+            ax_vel.set_title(f'Velocity (μ={vel_mean:.3f}, σ={vel_std:.3f})', fontsize=12)
+            ax_vel.axhline(y=0, color='k', linestyle='--', lw=0.8, alpha=0.5)
+            ax_vel.legend(loc='best', fontsize=10)
+        else:
+            ax_vel.text(0.5, 0.5, 'No Velocity Data',
+                        transform=ax_vel.transAxes, ha='center', va='center',
+                        fontsize=14, color='gray')
+            ax_vel.set_xlabel('Time [s]')
+            ax_vel.set_title('Velocity (No Data)', fontsize=12)
         ax_vel.grid(True, alpha=0.3)
-        ax_vel.axhline(y=0, color='k', linestyle='--', lw=0.8, alpha=0.5)
-        ax_vel.legend(loc='best', fontsize=8)
 
-    # 最后一行设置x轴标签
-    axes[-1, 0].set_xlabel('Time [s]')
-    axes[-1, 1].set_xlabel('Time [s]')
-
-    plt.tight_layout()
-    plt.show()
+        plt.tight_layout()
+        plt.show()
 
 
 def main():
