@@ -13,7 +13,7 @@ import argparse
 parser = argparse.ArgumentParser(description="Pace agent for Isaac Lab environments.")
 parser.add_argument("--folder_name", type=str, default=None, help="Name of the folder to use.")
 parser.add_argument("--mean_name", type=str, default=None, help="Name of the parameters file to use.")
-parser.add_argument("--robot_name", type=str, default="Atom3DOF_sim", help="Name of the robot.")
+parser.add_argument("--robot_name", type=str, default="Y1_1_sim", help="Name of the robot.")
 parser.add_argument("--plot_trajectory", action="store_true", help="Whether to plot the trajectory.")
 parser.add_argument("--plot_score", action="store_true", help="Whether to plot the score over iterations.")
 
@@ -86,6 +86,10 @@ print(f"Viscous friction params: {mean[len(joint_order):2 * len(joint_order)]}")
 print(f"Static friction params: {mean[2 * len(joint_order):3 * len(joint_order)]}")
 print(f"Encoder bias params: {mean[3 * len(joint_order):4 * len(joint_order)]}")
 print(f"Delay param: {mean[-1].item()}")
+if "pos_weight" in config:
+    print(f"Position weight: {config['pos_weight']}")
+if "vel_weight" in config:
+    print(f"Velocity weight: {config['vel_weight']}")
 encoder_bias = mean[3 * len(joint_order):4 * len(joint_order)]  # extract encoder bias
 
 if plot_score:
