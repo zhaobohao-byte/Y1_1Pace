@@ -26,10 +26,11 @@ def convert_csv_to_pt(csv_path):
         time = torch.tensor(df['time'].values, dtype=torch.float32)
         n = len(df)
 
-        # 创建三个张量，按指定关节顺序排列
+        # 创建四个张量，按指定关节顺序排列
         des_pos = torch.zeros((n, len(JOINT_ORDER)), dtype=torch.float32)
         act_pos = torch.zeros((n, len(JOINT_ORDER)), dtype=torch.float32)
         vel = torch.zeros((n, len(JOINT_ORDER)), dtype=torch.float32)
+        torque = torch.zeros((n, len(JOINT_ORDER)), dtype=torch.float32)
 
         for i, joint in enumerate(JOINT_ORDER):
             if f'des_dof_pos_{joint}' in df.columns:
@@ -38,6 +39,8 @@ def convert_csv_to_pt(csv_path):
                 act_pos[:, i] = torch.tensor(df[f'dof_pos_{joint}'].values)
             if f'dof_vel_{joint}' in df.columns:
                 vel[:, i] = torch.tensor(df[f'dof_vel_{joint}'].values)
+            if f'dof_tau_{joint}' in df.columns:
+                torque[:, i] = torch.tensor(df[f'dof_tau_{joint}'].values)
 
         # 保存
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -48,6 +51,7 @@ def convert_csv_to_pt(csv_path):
             'des_dof_pos': des_pos,
             'dof_pos': act_pos,
             'dof_vel': vel,
+            'dof_tau': torque,
         }, save_path)
 
         print(f"  → 已保存: {save_path.name}  ({len(time)} 帧)")
@@ -59,23 +63,24 @@ def convert_csv_to_pt(csv_path):
 
 
 def plot_trajectory(pt_path):
-    """画轨迹图：每个关节单独显示一个图，左边位置对比，右边速度"""
+    """画轨迹图：每个关节单独显示一个图，三行一列（位置、速度、力矩）"""
     data = torch.load(pt_path)
     t = data['time'].numpy()
 
     # 从数据中获取关节数量
     n_joints = data['dof_pos'].shape[1]
 
-    # 检查是否有速度数据
+    # 检查是否有速度和力矩数据
     has_velocity = 'dof_vel' in data and data['dof_vel'].norm() > 0
+    has_torque = 'dof_tau' in data and data['dof_tau'].norm() > 0
 
     # 为每个关节单独创建一个图
     for i, name in enumerate(JOINT_ORDER[:n_joints]):
-        # 创建1行2列的子图（位置和速度）
-        fig, (ax_pos, ax_vel) = plt.subplots(1, 2, figsize=(14, 4.5))
+        # 创建3行1列的子图（位置、速度、力矩）
+        fig, (ax_pos, ax_vel, ax_torque) = plt.subplots(3, 1, figsize=(12, 10))
         fig.suptitle(f'{name} - {pt_path.stem}', fontsize=14, fontweight='bold')
 
-        # 左图：位置对比
+        # 第一个子图：位置对比
         ax_pos.plot(t, data['des_dof_pos'][:, i], 'b--', label='Desired', lw=2, alpha=0.8)
         ax_pos.plot(t, data['dof_pos'][:, i], 'r-', label='Actual', lw=1.5)
 
@@ -89,7 +94,7 @@ def plot_trajectory(pt_path):
         ax_pos.grid(True, alpha=0.3)
         ax_pos.legend(loc='best', fontsize=10)
 
-        # 右图：速度（如果有数据）
+        # 第二个子图：速度（如果有数据）
         if has_velocity:
             vel = data['dof_vel'][:, i].numpy()
             ax_vel.plot(t, vel, 'g-', lw=1.5, label='Velocity')
@@ -110,6 +115,28 @@ def plot_trajectory(pt_path):
             ax_vel.set_xlabel('Time [s]')
             ax_vel.set_title('Velocity (No Data)', fontsize=12)
         ax_vel.grid(True, alpha=0.3)
+
+        # 第三个子图：力矩（如果有数据）
+        if has_torque:
+            torque = data['dof_tau'][:, i].numpy()
+            ax_torque.plot(t, torque, 'm-', lw=1.5, label='Torque')
+
+            # 计算力矩统计
+            torque_mean = torque.mean()
+            torque_std = torque.std()
+
+            ax_torque.set_xlabel('Time [s]')
+            ax_torque.set_ylabel('Torque [N·m]')
+            ax_torque.set_title(f'Torque (μ={torque_mean:.3f}, σ={torque_std:.3f})', fontsize=12)
+            ax_torque.axhline(y=0, color='k', linestyle='--', lw=0.8, alpha=0.5)
+            ax_torque.legend(loc='best', fontsize=10)
+        else:
+            ax_torque.text(0.5, 0.5, 'No Torque Data',
+                           transform=ax_torque.transAxes, ha='center', va='center',
+                           fontsize=14, color='gray')
+            ax_torque.set_xlabel('Time [s]')
+            ax_torque.set_title('Torque (No Data)', fontsize=12)
+        ax_torque.grid(True, alpha=0.3)
 
         plt.tight_layout()
         plt.show()
