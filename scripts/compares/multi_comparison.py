@@ -22,7 +22,7 @@ def load_data(file_path):
     result = {'name': file_path.stem, 'path': file_path}
 
     # 保留所有关节数据（不只取第一个关节）
-    for key in ['time', 'dof_pos', 'dof_vel', 'des_dof_pos']:
+    for key in ['time', 'dof_pos', 'dof_vel', 'dof_torque', 'des_dof_pos']:
         if key in data:
             tensor = data[key]
             if key == 'time':
@@ -56,7 +56,13 @@ def plot_comparison(data_list, output_path):
     for joint_idx in range(n_joints):
         print(f"  绘制关节 {joint_idx + 1}/{n_joints}...")
 
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10))
+        # 检查是否有力矩数据
+        has_torque = any('dof_torque' in d for d in data_list)
+        
+        if has_torque:
+            fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(14, 14))
+        else:
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10))
         fig.suptitle(f'Joint {joint_idx + 1} Comparison', fontsize=16, fontweight='bold', y=0.995)
 
         # 位置比较
@@ -118,6 +124,31 @@ def plot_comparison(data_list, output_path):
                      transform=ax2.transAxes, ha='center', va='center', fontsize=12)
             ax2.set_title(f'Joint {joint_idx + 1} - Velocity Comparison (No Data)', fontsize=14, fontweight='bold')
 
+        # 力矩比较
+        if has_torque:
+            for i, data in enumerate(data_list):
+                if 'dof_torque' in data:
+                    # 绘制力矩数据
+                    torque_data = data['dof_torque'][:, joint_idx] if data['dof_torque'].ndim > 1 else data['dof_torque']
+                    
+                    if i == 0:
+                        # 第一个文件（真实数据）：红色实线
+                        ax3.plot(data['time'], torque_data,
+                                 color='red', linestyle='-', linewidth=2,
+                                 alpha=0.9, zorder=3, label=f'{labels[i]} (Real)')
+                    else:
+                        # 其他文件（仿真数据）：蓝色虚线
+                        ax3.plot(data['time'], torque_data,
+                                 color='blue', linestyle='--', linewidth=1.5,
+                                 alpha=0.8, zorder=2, label=f'{labels[i]} (Sim)')
+
+            ax3.axhline(y=0, color='k', linestyle='--', linewidth=0.8, alpha=0.3)
+            ax3.set_xlabel('Time [s]', fontsize=12)
+            ax3.set_ylabel('Torque [N·m]', fontsize=12)
+            ax3.set_title(f'Joint {joint_idx + 1} - Torque Comparison', fontsize=14, fontweight='bold')
+            ax3.legend(loc='best', fontsize=10)
+            ax3.grid(alpha=0.3)
+
         plt.tight_layout()
 
         # 保存每个关节的图
@@ -155,8 +186,8 @@ def main():
     )
     parser.add_argument('files', nargs='*',  # 改为 '*' 允许0个或多个参数
                         default=[
-                            "/home/bohao/LuvRobot/Y1_1Pace/data/Atom3motors/raw_pt/260117_steps_10s_3motors_aligned.pt",
-                            "/home/bohao/LuvRobot/Y1_1Pace/data/sim_data/260117_steps_10s_3motors_aligned_sim_output_pv_150.pt"
+                            "/home/bohao/LuvRobot/Y1_1Pace/data/Atom3motors/raw_pt/Step_y1_1_leftleg_aligned.pt",
+                            "/home/bohao/LuvRobot/Y1_1Pace/data/sim_data/Step_y1_1_leftleg_aligned_sim_output.pt"
                         ],
                         help='要比较的PT文件的绝对路径 (2-4个文件，不提供则使用默认文件)')
     parser.add_argument('-o', '--output',
