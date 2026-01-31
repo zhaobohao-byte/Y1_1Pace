@@ -14,9 +14,9 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser(description="Pace agent for Isaac Lab environments.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Pace-Y1-1-v0", help="Name of the task.")
-parser.add_argument("--input_data", type=str, default="/home/bohao/LuvRobot/Y1_1Pace/data/Atom3motors/raw_pt/Sin_5Hz_y1_1_leftleg_aligned.pt",
+parser.add_argument("--input_data", type=str, default="/home/bohao/LuvRobot/Y1_1Pace/data/Atom3motors/raw_pt/Step_y1_1_leftleg_aligned.pt",
                     help="Input trajectory data file path (absolute or relative to data/). If not provided, interactive mode will start.")
-parser.add_argument("--params_file", type=str, default="/home/bohao/LuvRobot/Y1_1Pace/logs/pace/Y1_1_sim/26_01_30_18-54-24/mean_170.pt",
+parser.add_argument("--params_file", type=str, default="/home/bohao/LuvRobot/Y1_1Pace/logs/pace/Y1_1_sim/26_01_30_19-00-10/mean_160.pt",
                     help="Path to optimized parameters file (e.g., mean_299.pt). If not provided, will use default parameters.")
 parser.add_argument("--output_suffix", type=str, default="sim_output",
                     help="Output file suffix (will create <input_name>_<suffix>.pt)")
@@ -245,7 +245,7 @@ def main():
     # 初始化缓冲区
     dof_pos_buffer = torch.zeros(num_steps, len(joint_ids), device=device)
     dof_vel_buffer = torch.zeros(num_steps, len(joint_ids), device=device)
-    dof_torque_buffer = torch.zeros(num_steps, len(joint_ids), device=device)
+    dof_tau_buffer = torch.zeros(num_steps, len(joint_ids), device=device)
     dof_target_pos_buffer = torch.zeros(num_steps, len(joint_ids), device=device)
 
     counter = 0
@@ -257,7 +257,7 @@ def main():
             dof_pos_buffer[counter] = robot.data.joint_pos[0, joint_ids] - bias[0, :len(joint_ids)]
             dof_vel_buffer[counter] = robot.data.joint_vel[0, joint_ids]
             # 获取关节力矩 (使用 applied_torque 属性)
-            dof_torque_buffer[counter] = robot.data.applied_torque[0, joint_ids]
+            dof_tau_buffer[counter] = robot.data.applied_torque[0, joint_ids]
             
             # 设置目标动作
             actions = trajectory[counter].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
@@ -281,7 +281,7 @@ def main():
         "time": t.cpu(),
         "dof_pos": dof_pos_buffer.cpu(),
         "dof_vel": dof_vel_buffer.cpu(),
-        "dof_torque": dof_torque_buffer.cpu(),
+        "dof_tau": dof_tau_buffer.cpu(),
         "des_dof_pos": dof_target_pos_buffer.cpu(),
     }
     torch.save(save_data, output_file)

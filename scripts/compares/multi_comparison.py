@@ -22,7 +22,7 @@ def load_data(file_path):
     result = {'name': file_path.stem, 'path': file_path}
 
     # 保留所有关节数据（不只取第一个关节）
-    for key in ['time', 'dof_pos', 'dof_vel', 'dof_torque', 'des_dof_pos']:
+    for key in ['time', 'dof_pos', 'dof_vel', 'dof_tau', 'des_dof_pos']:
         if key in data:
             tensor = data[key]
             if key == 'time':
@@ -57,7 +57,7 @@ def plot_comparison(data_list, output_path):
         print(f"  绘制关节 {joint_idx + 1}/{n_joints}...")
 
         # 检查是否有力矩数据
-        has_torque = any('dof_torque' in d for d in data_list)
+        has_torque = any('dof_tau' in d for d in data_list)
         
         if has_torque:
             fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(14, 14))
@@ -127,9 +127,9 @@ def plot_comparison(data_list, output_path):
         # 力矩比较
         if has_torque:
             for i, data in enumerate(data_list):
-                if 'dof_torque' in data:
+                if 'dof_tau' in data:
                     # 绘制力矩数据
-                    torque_data = data['dof_torque'][:, joint_idx] if data['dof_torque'].ndim > 1 else data['dof_torque']
+                    torque_data = data['dof_tau'][:, joint_idx] if data['dof_tau'].ndim > 1 else data['dof_tau']
                     
                     if i == 0:
                         # 第一个文件（真实数据）：红色实线
