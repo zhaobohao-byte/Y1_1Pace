@@ -186,8 +186,8 @@ def main():
     )
     parser.add_argument('files', nargs='*',  # 改为 '*' 允许0个或多个参数
                         default=[
-                            "/home/bohao/LuvRobot/Y1_1Pace/data/Atom3motors/raw_pt/Step_y1_1_leftleg_aligned.pt",
-                            "/home/bohao/LuvRobot/Y1_1Pace/data/sim_data/Step_y1_1_leftleg_aligned_sim_output.pt"
+                            "/home/bohao/LuvRobot/Y1_1Pace/data/Atom3motors/raw_pt/Sin_5Hz_y1_1_leftleg_aligned.pt",
+                            "/home/bohao/LuvRobot/Y1_1Pace/data/sim_data/Sin_5Hz_y1_1_leftleg_aligned_sim_output.pt"
                         ],
                         help='要比较的PT文件的绝对路径 (2-4个文件，不提供则使用默认文件)')
     parser.add_argument('-o', '--output',

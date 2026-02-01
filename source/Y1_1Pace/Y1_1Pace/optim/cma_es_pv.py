@@ -12,7 +12,7 @@ import os
 
 
 class CMAESOptimizer:
-    def __init__(self, bounds, population_size, log_dir, joint_order, max_iteration, data, device, epsilon=None, sigma=0.5, save_interval=10, save_optimization_process=False, pos_weight=1.0, vel_weight=0.0):
+    def __init__(self, bounds, population_size, log_dir, joint_order, max_iteration, data, device, epsilon=None, sigma=0.5, save_interval=10, save_optimization_process=False, pos_weight=1.0, vel_weight=0.0, torque_weight=0.0):
 
         self.joint_order = joint_order
         self.max_iteration = max_iteration
@@ -22,6 +22,7 @@ class CMAESOptimizer:
         self.save_optimization_process = save_optimization_process
         self.pos_weight = pos_weight  # Weight for position error
         self.vel_weight = vel_weight  # Weight for velocity error
+        self.torque_weight = torque_weight  # Weight for torque error
         self._timer_start = datetime.now()  # timer for logging purposes
 
         # create log_dir in YY_MM_DD_hh-mm-ss format
@@ -37,11 +38,15 @@ class CMAESOptimizer:
             "des_dof_pos": data["des_dof_pos"],
             "time": data["time"],
             "pos_weight": pos_weight,
-            "vel_weight": vel_weight
+            "vel_weight": vel_weight,
+            "torque_weight": torque_weight
         }
         # Add velocity data if available
         if "dof_vel" in data and self.vel_weight is not None:
             config_data["dof_vel"] = data["dof_vel"]
+        # Add torque data if available
+        if "dof_torque" in data and self.torque_weight is not None:
+            config_data["dof_torque"] = data["dof_torque"]
         torch.save(config_data, log_dir + "/config.pt")
         self.bounds = bounds
 
@@ -62,6 +67,10 @@ class CMAESOptimizer:
             self.vel_scores = torch.zeros(population_size, device=device)  # Track velocity error separately
         # 始终记录velocity数据
         self.sim_dof_vel_buffer = torch.zeros((population_size, data["dof_pos"].shape[0], len(joint_order)), device=device)
+        if "dof_torque" in data and self.torque_weight is not None:
+            self.torque_scores = torch.zeros(population_size, device=device)  # Track torque error separately
+        # 始终记录torque数据
+        self.sim_dof_torque_buffer = torch.zeros((population_size, data["dof_pos"].shape[0], len(joint_order)), device=device)
 
         self.params = torch.zeros((population_size, bounds.shape[0]), device=device)
         self.sim_params = torch.zeros_like(self.params)
@@ -81,7 +90,7 @@ class CMAESOptimizer:
     def ask(self):
         return self.optimizer.ask()
 
-    def tell(self, sim_dof_pos, real_dof_pos, sim_dof_vel=None, real_dof_vel=None):
+    def tell(self, sim_dof_pos, real_dof_pos, sim_dof_vel=None, real_dof_vel=None, sim_dof_torque=None, real_dof_torque=None):
         # Position error
         pos_error = torch.sum(torch.square(sim_dof_pos - real_dof_pos), dim=1)
         self.pos_scores += pos_error
@@ -93,9 +102,19 @@ class CMAESOptimizer:
             self.vel_scores += vel_error
             self.scores += self.vel_weight * vel_error
 
+        # Torque error (if provided)
+        if sim_dof_torque is not None and real_dof_torque is not None and self.torque_weight is not None:
+            torque_error = torch.sum(torch.square(sim_dof_torque - real_dof_torque), dim=1)
+            self.torque_scores += torque_error
+            self.scores += self.torque_weight * torque_error
+
         # Always record velocity data if available (for logging/analysis)
         if sim_dof_vel is not None:
             self.sim_dof_vel_buffer[:, self.scores_counter, :] = sim_dof_vel
+
+        # Always record torque data if available (for logging/analysis)
+        if sim_dof_torque is not None:
+            self.sim_dof_torque_buffer[:, self.scores_counter, :] = sim_dof_torque
 
         self.sim_dof_pos_buffer[:, self.scores_counter, :] = sim_dof_pos
         self.scores_counter += 1
@@ -104,6 +123,8 @@ class CMAESOptimizer:
         self.scores /= self.scores_counter
         if self.vel_weight is not None and self.sim_dof_vel_buffer is not None:
             self.vel_scores /= self.scores_counter
+        if self.torque_weight is not None and self.sim_dof_torque_buffer is not None:
+            self.torque_scores /= self.scores_counter
         self.pos_scores /= self.scores_counter
         self.scores_buffer[self.iteration_counter, :] = self.scores
         if self.save_optimization_process:
@@ -170,6 +191,8 @@ class CMAESOptimizer:
         print(f"Position error: {self.pos_scores[min_index].item():.6f}")
         if self.vel_weight is not None and self.sim_dof_vel_buffer is not None:
             print(f"Velocity error: {self.vel_scores[min_index].item():.6f}")
+        if self.torque_weight is not None and self.sim_dof_torque_buffer is not None:
+            print(f"Torque error: {self.torque_scores[min_index].item():.6f}")
         print("-" * 80)
         print("Best parameters:")
         print(f"  Armature: {self.sim_params[min_index, self.armature_idx].tolist()}")
@@ -218,6 +241,9 @@ class CMAESOptimizer:
 
         if self.vel_weight is not None and self.sim_dof_vel_buffer is not None:
             self.writer.add_scalar("0_Episode/vel_error", self.vel_scores[min_score_index].item(), self.iteration_counter)
+
+        if self.torque_weight is not None and self.sim_dof_torque_buffer is not None:
+            self.writer.add_scalar("0_Episode/torque_error", self.torque_scores[min_score_index].item(), self.iteration_counter)
 
     def save_checkpoint(self, mean, iteration, finished=False):
         min_index = torch.argmin(self.scores_buffer[iteration, :])

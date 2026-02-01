@@ -14,9 +14,9 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser(description="Pace agent for Isaac Lab environments.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Pace-Y1-1-v0", help="Name of the task.")
-parser.add_argument("--input_data", type=str, default="/home/bohao/LuvRobot/Y1_1Pace/data/Atom3motors/raw_pt/Step_y1_1_leftleg_aligned.pt",
+parser.add_argument("--input_data", type=str, default="/home/bohao/LuvRobot/Y1_1Pace/data/Atom3motors/raw_pt/Sin_5Hz_y1_1_leftleg_aligned.pt",
                     help="Input trajectory data file path (absolute or relative to data/). If not provided, interactive mode will start.")
-parser.add_argument("--params_file", type=str, default="/home/bohao/LuvRobot/Y1_1Pace/logs/pace/Y1_1_sim/26_01_30_19-00-10/mean_160.pt",
+parser.add_argument("--params_file", type=str, default="/home/bohao/LuvRobot/Y1_1Pace/logs/pace/Y1_1_sim/26_01_30_18-58-20/mean_160.pt",
                     help="Path to optimized parameters file (e.g., mean_299.pt). If not provided, will use default parameters.")
 parser.add_argument("--output_suffix", type=str, default="sim_output",
                     help="Output file suffix (will create <input_name>_<suffix>.pt)")

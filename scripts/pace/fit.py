@@ -73,22 +73,43 @@ def main():
 
     # Get optimization weights from config if available, otherwise use defaults
     pos_weight = getattr(env_cfg.sim2real.cmaes, 'pos_weight', 1.0)
-    vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', 0.2)    # 'vel_weight', 0.1
+    vel_weight = getattr(env_cfg.sim2real.cmaes, 'vel_weight', 0.2)
+    torque_weight = getattr(env_cfg.sim2real.cmaes, 'torque_weight', 0.0)
 
     # Determine if velocity should be used: both data available AND vel_weight is set
     has_velocity_data = "dof_vel" in data
     use_velocity = has_velocity_data and vel_weight is not None
 
+    # Determine if torque should be used: both data available AND torque_weight is set
+    has_torque_data = "dof_torque" in data
+    use_torque = has_torque_data and torque_weight is not None
+
     if use_velocity:
         measured_dof_vel = data["dof_vel"].to(env.unwrapped.device)
-        print(f"[INFO]: Using velocity in optimization. Position weight: {pos_weight}, Velocity weight: {vel_weight}")
     else:
         measured_dof_vel = None
+
+    if use_torque:
+        measured_dof_torque = data["dof_torque"].to(env.unwrapped.device)
+    else:
+        measured_dof_torque = None
+
+    # Print optimization configuration
+    print(f"[INFO]: Optimization weights - Position: {pos_weight}, Velocity: {vel_weight}, Torque: {torque_weight}")
+    if use_velocity:
+        print("[INFO]: Using velocity in optimization.")
+    else:
         if not has_velocity_data:
-            print("[INFO]: No velocity data found in file. Optimization will use position error only.")
+            print("[INFO]: No velocity data found in file.")
         elif vel_weight is None or vel_weight == 0.0:
-            print(f"[INFO]: Velocity weight is {vel_weight}. Optimization will use position error only.")
-        print(f"[INFO]: Optimization weights - Position: {pos_weight}")
+            print(f"[INFO]: Velocity weight is {vel_weight}, skipping velocity optimization.")
+    if use_torque:
+        print("[INFO]: Using torque in optimization.")
+    else:
+        if not has_torque_data:
+            print("[INFO]: No torque data found in file.")
+        elif torque_weight is None or torque_weight == 0.0:
+            print(f"[INFO]: Torque weight is {torque_weight}, skipping torque optimization.")
 
     opt = CMAESOptimizer(
         bounds=bounds_params,
@@ -104,6 +125,7 @@ def main():
         save_optimization_process=env_cfg.sim2real.cmaes.save_optimization_process,
         pos_weight=pos_weight,
         vel_weight=vel_weight if use_velocity else None,
+        torque_weight=torque_weight if use_torque else None,
     )
 
     env.reset()
@@ -117,16 +139,21 @@ def main():
             # Get current simulated joint states
             sim_joint_pos = env.unwrapped.scene.articulations["robot"].data.joint_pos[:, sim_joint_ids]
             sim_joint_vel = env.unwrapped.scene.articulations["robot"].data.joint_vel[:, sim_joint_ids]
+            sim_joint_torque = env.unwrapped.scene.articulations["robot"].data.joint_effort[:, sim_joint_ids]
 
             # Get measured/target states for current timestep
             measured_pos = measured_dof_pos[counter, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
 
-            # Update optimizer with position and optionally velocity data
+            # Prepare measured velocity and torque if needed
+            measured_vel = None
+            measured_torque = None
             if use_velocity:
                 measured_vel = measured_dof_vel[counter, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
-                opt.tell(sim_joint_pos, measured_pos, sim_joint_vel, measured_vel)
-            else:
-                opt.tell(sim_joint_pos, measured_pos, sim_joint_vel, None)
+            if use_torque:
+                measured_torque = measured_dof_torque[counter, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
+
+            # Update optimizer with position, velocity, and torque data
+            opt.tell(sim_joint_pos, measured_pos, sim_joint_vel, measured_vel, sim_joint_torque, measured_torque)
 
             # Set target position actions
             actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
