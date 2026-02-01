@@ -81,7 +81,7 @@ def main():
     use_velocity = has_velocity_data and vel_weight is not None
 
     # Determine if torque should be used: both data available AND torque_weight is set
-    has_torque_data = "dof_torque" in data
+    has_torque_data = "dof_tau" in data
     use_torque = has_torque_data and torque_weight is not None
 
     if use_velocity:
@@ -90,9 +90,9 @@ def main():
         measured_dof_vel = None
 
     if use_torque:
-        measured_dof_torque = data["dof_torque"].to(env.unwrapped.device)
+        measured_dof_tau = data["dof_tau"].to(env.unwrapped.device)
     else:
-        measured_dof_torque = None
+        measured_dof_tau = None
 
     # Print optimization configuration
     print(f"[INFO]: Optimization weights - Position: {pos_weight}, Velocity: {vel_weight}, Torque: {torque_weight}")
@@ -150,7 +150,7 @@ def main():
             if use_velocity:
                 measured_vel = measured_dof_vel[counter, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
             if use_torque:
-                measured_torque = measured_dof_torque[counter, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
+                measured_torque = measured_dof_tau[counter, :].unsqueeze(0).repeat(env.unwrapped.num_envs, 1)
 
             # Update optimizer with position, velocity, and torque data
             opt.tell(sim_joint_pos, measured_pos, sim_joint_vel, measured_vel, sim_joint_torque, measured_torque)
